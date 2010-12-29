@@ -43,7 +43,7 @@ if (!$project) {
 	$AppUI->savePlace();
 }
 
-$total_project_hours = $total_hours = $project->getTotalProjectHours();
+$total_hours = $project->getTotalProjectHours();
 
 // get the prefered date format
 $df = $AppUI->getPref('SHDATEFORMAT');
@@ -177,26 +177,17 @@ echo '<font color="' . bestColor($project->project_color_identifier) . '"><stron
 			</td>
 		</tr>
 		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Target Budget'); ?>:</td>
-			<td class="hilite">
-                <?php
-                    echo $w2Pconfig['currency_symbol'];
-                    echo formatCurrency($project->project_target_budget, $AppUI->getPref('CURRENCYFORM'));
-                ?>
-            </td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Project Owner'); ?>:</td>
-			<td class="hilite"><?php echo $project->user_name; ?></td>
-		</tr>
-		<tr>
 			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('URL'); ?>:</td>
-      <td class="hilite"><?php echo w2p_url($project->project_url); ?></td>
+            <td class="hilite"><?php echo w2p_url($project->project_url); ?></td>
 		</tr>
 		<tr>
 			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Staging URL'); ?>:</td>
-      <td class="hilite"><?php echo w2p_url($project->project_demo_url); ?></td>
+            <td class="hilite"><?php echo w2p_url($project->project_demo_url); ?></td>
 		</tr>
+        <tr>
+            <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Type'); ?>:</td>
+            <td class="hilite" width="100%"><?php echo $AppUI->_($ptype[$project->project_type]); ?></td>
+        </tr>
 		<tr>
 			<td colspan="2">
 				<?php
@@ -222,69 +213,84 @@ echo '<font color="' . bestColor($project->project_color_identifier) . '"><stron
 	<td width="50%" rowspan="1" valign="top">
 		<strong><?php echo $AppUI->_('Summary'); ?></strong><br />
 		<table cellspacing="1" cellpadding="2" border="0" width="100%">
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Status'); ?>:</td>
-			<td class="hilite" width="100%"><?php echo $AppUI->_($pstatus[$project->project_status]); ?></td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Priority'); ?>:</td>
-			<td class="hilite" width="100%" style="background-color:<?php echo $projectPriorityColor[$project->project_priority] ?>"><?php echo $AppUI->_($projectPriority[$project->project_priority]); ?></td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Type'); ?>:</td>
-			<td class="hilite" width="100%"><?php echo $AppUI->_($ptype[$project->project_type]); ?></td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Progress'); ?>:</td>
-			<td class="hilite" width="100%"><?php printf('%.1f%%', $project->project_percent_complete); ?></td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Active'); ?>:</td>
-			<td class="hilite" width="100%"><?php echo $project->project_active ? $AppUI->_('Yes') : $AppUI->_('No'); ?></td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Worked Hours'); ?>:</td>
-			<td class="hilite" width="100%"><?php echo $project->project_worked_hours; ?></td>
-		</tr>	
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Scheduled Hours'); ?>:</td>
-			<td class="hilite" width="100%"><?php echo $total_hours ?></td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Project Hours'); ?>:</td>
-			<td class="hilite" width="100%"><?php echo $total_project_hours ?></td>
-		</tr>				
-		<?php
-		$depts = CProject::getDepartments($AppUI, $project->project_id);
+            <tr>
+                <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Target Budget'); ?>:</td>
+                <td class="hilite">
+                    <?php
+                        echo $w2Pconfig['currency_symbol'];
+                        echo formatCurrency($project->project_target_budget, $AppUI->getPref('CURRENCYFORM'));
+                    ?>
+                </td>
+            </tr>
+            <tr>
+                <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Target Budget'); ?>:</td>
+                <td class="hilite">
+                    <?php
+                        echo $w2Pconfig['currency_symbol'];
+                        echo formatCurrency($project->project_actual_budget, $AppUI->getPref('CURRENCYFORM'));
+                    ?>
+                </td>
+            </tr>
+            <tr>
+                <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Project Owner'); ?>:</td>
+                <td class="hilite"><?php echo $project->user_name; ?></td>
+            </tr>
+            <tr>
+                <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Status'); ?>:</td>
+                <td class="hilite" width="100%"><?php echo $AppUI->_($pstatus[$project->project_status]); ?></td>
+            </tr>
+            <tr>
+                <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Priority'); ?>:</td>
+                <td class="hilite" width="100%" style="background-color:<?php echo $projectPriorityColor[$project->project_priority] ?>"><?php echo $AppUI->_($projectPriority[$project->project_priority]); ?></td>
+            </tr>
+            <tr>
+                <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Progress'); ?>:</td>
+                <td class="hilite" width="100%"><?php printf('%.1f%%', $project->project_percent_complete); ?></td>
+            </tr>
+            <tr>
+                <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Active'); ?>:</td>
+                <td class="hilite" width="100%"><?php echo $project->project_active ? $AppUI->_('Yes') : $AppUI->_('No'); ?></td>
+            </tr>
+            <tr>
+                <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Scheduled Hours'); ?>:</td>
+                <td class="hilite" width="100%"><?php echo $total_hours ?></td>
+            </tr>
+            <tr>
+                <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Worked Hours'); ?>:</td>
+                <td class="hilite" width="100%"><?php echo $project->project_worked_hours; ?></td>
+            </tr>
 
-		if (count($depts) > 0) { ?>
-		    <tr>
-		    	<td><strong><?php echo $AppUI->_('Departments'); ?></strong></td>
-		    </tr>
-		    <tr>
-		    	<td colspan='3' class="hilite">
-		    		<?php
-							foreach ($depts as $dept_id => $dept_info) {
-								echo '<div>';
-								echo '<a href="?m=departments&a=view&dept_id='.$dept_id.'">'.$dept_info['dept_name'].'</a>';
-								if ($dept_info['dept_phone'] != '') {
-									echo '( ' . $dept_info['dept_phone'] . ' )';
-								}
-								echo '</div>';
-							}
-						?>
-		    	</td>
-		    </tr>
-			<?php
-		}
-		$contacts = CProject::getContacts($AppUI, $project->project_id);
-        if (count($contacts)) {
-            echo '<tr><td><strong>' . $AppUI->_('Project Contacts') . '</strong></td></tr>';
-            echo '<tr><td colspan="3" class="hilite">';
-            echo w2p_Output_HTMLHelper::renderContactList($AppUI, $contacts);
-            echo '</td></tr>';
-        }
-        ?>
+            <?php
+            $depts = CProject::getDepartments($AppUI, $project->project_id);
+
+            if (count($depts) > 0) { ?>
+                <tr>
+                    <td><strong><?php echo $AppUI->_('Departments'); ?></strong></td>
+                </tr>
+                <tr>
+                    <td colspan='3' class="hilite">
+                        <?php
+                                foreach ($depts as $dept_id => $dept_info) {
+                                    echo '<div>';
+                                    echo '<a href="?m=departments&a=view&dept_id='.$dept_id.'">'.$dept_info['dept_name'].'</a>';
+                                    if ($dept_info['dept_phone'] != '') {
+                                        echo '( ' . $dept_info['dept_phone'] . ' )';
+                                    }
+                                    echo '</div>';
+                                }
+                            ?>
+                    </td>
+                </tr>
+                <?php
+            }
+            $contacts = CProject::getContacts($AppUI, $project->project_id);
+            if (count($contacts)) {
+                echo '<tr><td><strong>' . $AppUI->_('Project Contacts') . '</strong></td></tr>';
+                echo '<tr><td colspan="3" class="hilite">';
+                echo w2p_Output_HTMLHelper::renderContactList($AppUI, $contacts);
+                echo '</td></tr>';
+            }
+            ?>
 		</table>
 	</td>
 </tr>

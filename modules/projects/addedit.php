@@ -307,8 +307,14 @@ function setDepartment(department_id_string){
                             </tr>
                             <tr>
                                 <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Actual Budget'); ?> <?php echo $w2Pconfig['currency_symbol'] ?></td>
-                                <td>
-                                    <input type="text" name="project_actual_budget" value="<?php echo $project->project_actual_budget; ?>" size="10" maxlength="10" class="text"/>
+                                <td nowrap="nowrap">
+                                <?php
+                                    if ($project_id > 0) {
+                                        echo formatCurrency($project->project_actual_budget, $AppUI->getPref('CURRENCYFORM'));
+                                    } else {
+                                        echo $AppUI->_('Dynamically calculated');
+                                    }
+                                ?>
                                 </td>
                             </tr>
                             <tr>

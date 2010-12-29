@@ -486,7 +486,6 @@ class CProject extends w2p_Core_BaseObject {
         $this->project_private = (int) $this->project_private;
 
         $this->project_target_budget = filterCurrency($this->project_target_budget);
-        $this->project_actual_budget = filterCurrency($this->project_actual_budget);
 
         // Make sure project_short_name is the right size (issue for languages with encoded characters)
         $this->project_short_name = mb_substr($this->project_short_name, 0, 10);
