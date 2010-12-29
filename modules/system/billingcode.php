@@ -85,29 +85,19 @@ function delIt2(id) {
                     </a>
                 <?php } ?>
             </td>
-            <td align="left">&nbsp;<?php echo (($code['company_id']) ? $companies[$code['company_id']] : 'None specified'); ?></td>
+            <td align="left">&nbsp;<?php echo (('' != $code['company_name']) ? $code['company_name'] : 'None specified'); ?></td>
             <td align="left">&nbsp;<?php echo $code['billingcode_name'] . ($code['billingcode_status'] == 1 ? ' (deleted)' : ''); ?></td>
             <td nowrap="nowrap" align="center"><?php echo $code['billingcode_value']; ?></td>
             <td nowrap="nowrap"><?php echo $code['billingcode_desc']; ?></td>
         </tr><?php
-    }
-    if ($billingcode_id) { ?>
-        <tr>
-            <td>&nbsp;<input type="hidden" name="billingcode_id" value="<?php echo $billingcode_id; ?>" /></td>
-            <td><?php echo arraySelect($companies, 'company_id', 'size="1" class="text"', $bcode->company_id, false); ?></td>
-            <td><input type="text" class="text" name="billingcode_name" value="<?php echo $bcode->billingcode_name; ?>" /></td>
-            <td><input type="text" class="text" name="billingcode_value" value="<?php echo $bcode->billingcode_value; ?>" /></td>
-            <td><input type="text" class="text" name="billingcode_desc" value="<?php echo $bcode->billingcode_desc; ?>" /></td>
-        </tr>
-    <?php } else { ?>
-        <tr>
-            <td>&nbsp;</td>
-            <td><?php echo arraySelect($companies, 'company_id', 'size="1" class="text"', $company_id, false); ?></td>
-            <td><input type="text" class="text" name="billingcode_name" value="" /></td>
-            <td class="center"><input type="text" class="text" name="billingcode_value" value="" /></td>
-            <td><input type="text" class="text" name="billingcode_desc" value="" /></td>
-        </tr>
-    <?php } ?>
+    } ?>
+    <tr>
+        <td>&nbsp;<input type="hidden" name="billingcode_id" value="<?php echo $billingcode_id; ?>" /></td>
+        <td><?php echo arraySelect($companies, 'company_id', 'size="1" class="text"', $bcode->company_id, false); ?></td>
+        <td><input type="text" class="text" name="billingcode_name" value="<?php echo $bcode->billingcode_name; ?>" /></td>
+        <td><input type="text" class="text" name="billingcode_value" value="<?php echo $bcode->billingcode_value; ?>" /></td>
+        <td><input type="text" class="text" name="billingcode_desc" value="<?php echo $bcode->billingcode_desc; ?>" /></td>
+    </tr>
     <tr>
         <td align="left">
             <input class="button"  type="button" value="<?php echo $AppUI->_('back'); ?>" onclick="javascript:history.back(-1);" />

@@ -178,8 +178,9 @@ class bcode extends w2p_Core_BaseObject {
     public function getBillingCodes($company_id = 0) {
         $q = new DBQuery;
         $q->addTable('billingcode', 'bc');
-        $q->addQuery('*');
-        $q->addOrder('billingcode_name ASC');
+        $q->addQuery('bc.*, c.company_name');
+        $q->leftJoin('companies', 'c', 'c.company_id = bc.company_id');
+        $q->addOrder('company_name, billingcode_name ASC');
         if ((int) $company_id) {
             $q->addWhere('company_id = ' . (int) $company_id);
         }
