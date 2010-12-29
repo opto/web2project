@@ -174,4 +174,16 @@ class bcode extends w2p_Core_BaseObject {
         }
         return $stored;
 	}
+
+    public function getBillingCodes($company_id = 0) {
+        $q = new DBQuery;
+        $q->addTable('billingcode', 'bc');
+        $q->addQuery('*');
+        $q->addOrder('billingcode_name ASC');
+        if ((int) $company_id) {
+            $q->addWhere('company_id = ' . (int) $company_id);
+        }
+
+        return $q->loadList();
+    }
 }

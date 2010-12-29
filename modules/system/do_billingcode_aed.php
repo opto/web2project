@@ -7,11 +7,12 @@ $del = (int) w2PgetParam($_POST, 'del', 0);
 $edit = (int) w2PgetParam($_POST, 'edit', 0);
 $company_id = (int) w2PgetParam($_POST, 'company_id', 0);
 
+$obj = new bcode();
+
 if (!canEdit('system')) {
 	$AppUI->redirect('m=public&a=access_denied');
 }
 
-$obj = new bcode();
 $obj->_billingcode_id = (int) w2PgetParam($_POST, 'billingcode_id', 0);
 
 // prepare (and translate) the module name ready for the suffix
