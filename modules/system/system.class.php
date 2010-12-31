@@ -132,47 +132,58 @@ class bcode extends w2p_Core_BaseObject {
 	}
 
 	public function delete(w2p_Core_CAppUI $AppUI = null) {
+		$perms = $AppUI->acl();
 
-		$q = $this->_query;
-		$q->addTable('billingcode');
-		$q->addUpdate('billingcode_status', '1');
-		$q->addWhere('billingcode_id = ' . (int)$this->_billingcode_id);
-        if ($q->exec()) {
-            $result = null;
-        } else {
-            $result = db_error();
-            $this->_error['delete-messages'] = $result;
-            return $result;
-        }
+		if ($perms->checkModuleItem('system', 'delete')) {
+			$q = new DBQuery;
+			$q->addTable('billingcode');
+			$q->addUpdate('billingcode_status', '1');
+			$q->addWhere('billingcode_id = ' . (int) $this->billingcode_id);
 
-        return $result;
+			if (!$q->exec()) {
+        	        	return db_error();
+	            	}
+			return true;
+	        }
+        	return false;
 	}
 
-	public function store(w2p_Core_CAppUI $AppUI = null) {
-        global $AppUI;
-        $perms = $AppUI->acl();
-        $stored = false;
+	public function store(CAppUI $AppUI) {
+		$perms = $AppUI->acl();
+		$stored = false;
+
+		$errorMsgArray = $this->check();
+
+		if (count($errorMsgArray) > 0) {
+			return $errorMsgArray;
+		}
+
+        if ($perms->checkModuleItem('system', 'edit')) {
+            if (($msg = parent::store())) {
+                return $msg;
+            }
+            $stored = true;
+        }
+        return $stored;
+	}
+
+	public function check() {
+       	// ensure the integrity of some variables
+		$errorArray = array();
+		$baseErrorMsg = get_class($this) . '::store-check failed - ';
 
         $q = $this->_query;
 		$q->addQuery('billingcode_id');
 		$q->addTable('billingcode');
 		$q->addWhere('billingcode_name = \'' . $this->billingcode_name . '\'');
 		$q->addWhere('company_id = ' . (int)$this->company_id);
-		$found_id = $q->loadResult();
-		$q->clear();
 
-		if ($found_id && $found_id != $this->_billingcode_id) {
-			$this->_error['store'] = 'Billing Code::code already exists';
-		} else {
-            if ($perms->checkModuleItem('system', 'edit')) {
-                if (($msg = parent::store())) {
-                    $this->_error['store'] = $msg;
-                } else {
-                    $stored = true;
-                }
-            }
-        }
-        return $stored;
+		$found_id = $q->loadResult();
+		if ($found_id && $found_id != $this->billingcode_id) {
+			$errorArray['billingcode_name'] = $baseErrorMsg . 'code already exists';
+		}
+
+		return $errorArray;
 	}
 
     public function getBillingCodes($company_id = 0) {
