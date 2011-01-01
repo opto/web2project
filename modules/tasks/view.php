@@ -208,10 +208,16 @@ function delIt() {
                 </tr>
                 <tr>
                     <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Target Budget'); ?>:</td>
-                    <td class="hilite" width="300">
+                    <td class="hilite">
                         <?php
                             echo $w2Pconfig['currency_symbol'].'&nbsp;';
                             echo formatCurrency($obj->task_target_budget, $AppUI->getPref('CURRENCYFORM'));
+
+                            $workingDays = $start_date->workingDaysInSpan($end_date);
+                            echo '<span style="float:right; font-style: italic;">';
+                            echo $w2Pconfig['currency_symbol'].'&nbsp;';
+                            echo formatCurrency($obj->task_target_budget/$workingDays, $AppUI->getPref('CURRENCYFORM'));
+                            echo ' average daily budget</span>';
                         ?>
                     </td>
                 </tr>
@@ -221,6 +227,11 @@ function delIt() {
                         <?php
                             $bcode = new bcode();
                             $results = $bcode->calculateTaskCost($task_id);
+
+                            echo '<span style="float:right; font-style: italic;">';
+                            echo $w2Pconfig['currency_symbol'].'&nbsp;';
+                            echo formatCurrency($results['actualCost']/$workingDays, $AppUI->getPref('CURRENCYFORM'));
+                            echo ' average daily costs</span><br />';
 
                             echo $w2Pconfig['currency_symbol'].'&nbsp;';
                             echo formatCurrency($results['actualCost'], $AppUI->getPref('CURRENCYFORM'));
