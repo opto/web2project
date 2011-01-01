@@ -3,7 +3,7 @@ if (!defined('W2P_BASE_DIR')) {
 	die('You should not access this file directly.');
 }
 
-$company_id = (int) w2PgetParam($_POST, 'company_id', 0);
+$company_id = (int) w2PgetParam($_POST, 'company_id', -1);
 $billingcode_id = (int) w2PgetParam($_GET, 'billingcode_id', 0);
 
 if (!canEdit('system')) {
@@ -12,12 +12,13 @@ if (!canEdit('system')) {
 
 $bcode = new bcode();
 $bcode->load($billingcode_id);
-$billingcodes = $bcode->getBillingCodes($company_id);
+$billingcodes = $bcode->getBillingCodes($company_id, false);
 
 // get a list of permitted companies
 $company = new CCompany();
 $companies = $company->getAllowedRecords($AppUI->user_id, 'company_id,company_name', 'company_name');
-$companies = arrayMerge(array('0' => $AppUI->_('Select Company')), $companies);
+$companies = arrayMerge(array('0' => $AppUI->_('None specified')), $companies);
+$companies = arrayMerge(array('-1' => $AppUI->_('All Codes')), $companies);
 
 $titleBlock = new w2p_Theme_TitleBlock('Edit Billing Codes', 'myevo-weather.png', $m, $m . '.' . $a);
 $titleBlock->addCrumb('?m=system', 'system admin');

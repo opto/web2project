@@ -186,16 +186,19 @@ class bcode extends w2p_Core_BaseObject {
 		return $errorArray;
 	}
 
-    public function getBillingCodes($company_id = 0) {
+    public function getBillingCodes($company_id = -1, $activeOnly = true) {
         $q = new DBQuery;
         $q->addTable('billingcode', 'bc');
         $q->addQuery('bc.*, c.company_name');
         $q->leftJoin('companies', 'c', 'c.company_id = bc.company_id');
         $q->addOrder('company_name, billingcode_name ASC');
-        if ((int) $company_id) {
-            $q->addWhere('company_id = ' . (int) $company_id);
+        if ($company_id > -1) {
+            $q->addWhere('bc.company_id = ' . (int) $company_id);
+        }
+        if ($activeOnly) {
+            $q->addWhere('billingcode_status = 0');
         }
 
-        return $q->loadList();
+        return $q->loadHashList('billingcode_id');
     }
 }
