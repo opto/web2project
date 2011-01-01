@@ -70,7 +70,7 @@ $log_date = new w2p_Utilities_Date($log->task_log_date);
 	   }
 
        // One minute has passed
-       total_minutes = total_minutes+1;
+       total_minutes++;
 
 	   document.getElementById('timerStatus').innerHTML = '( '+total_minutes+' <?php echo $AppUI->_('minutes elapsed'); ?> )';
 
