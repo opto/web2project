@@ -210,8 +210,23 @@ function delIt() {
                     <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Target Budget'); ?>:</td>
                     <td class="hilite" width="300">
                         <?php
-                            echo $w2Pconfig['currency_symbol'];
+                            echo $w2Pconfig['currency_symbol'].'&nbsp;';
                             echo formatCurrency($obj->task_target_budget, $AppUI->getPref('CURRENCYFORM'));
+                        ?>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Actual Cost'); ?>:</td>
+                    <td class="hilite" width="300">
+                        <?php
+                            $bcode = new bcode();
+                            $results = $bcode->calculateTaskCost($task_id);
+
+                            echo $w2Pconfig['currency_symbol'].'&nbsp;';
+                            echo formatCurrency($results['actualCost'], $AppUI->getPref('CURRENCYFORM'));
+                            if ($results['uncountedHours'] > 0) {
+                                echo '<span style="float:right; font-style: italic;">'.$results['uncountedHours'].' hours without billing codes</span>';
+                            }
                         ?>
                     </td>
                 </tr>

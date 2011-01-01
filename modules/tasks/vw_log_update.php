@@ -38,23 +38,6 @@ $bcode = new bcode();
 $companyBC = $bcode->getBillingCodes($proj->project_company);
 $neutralBC = $bcode->getBillingCodes(0);
 
-$q = new DBQuery();
-$q->addTable('billingcode');
-$q->addQuery('billingcode_id, billingcode_name');
-$q->addWhere('billingcode_status=0');
-$q->addWhere('(company_id=' . $project->project_company . ' OR company_id = 0)');
-$q->addOrder('billingcode_name');
-
-$task_log_costcodes[0] = '';
-$rows = $q->loadList();
-echo db_error();
-$nums = 0;
-foreach ($rows as $key => $row) {
-	$task_log_costcodes[$row['billingcode_id']] = $row['billingcode_name'];
-}
-
-$taskLogReference = w2PgetSysVal('TaskLogReference');
-
 // Task Update Form
 $df = $AppUI->getPref('SHDATEFORMAT');
 $log_date = new w2p_Utilities_Date($log->task_log_date);

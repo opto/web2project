@@ -105,4 +105,26 @@ class bcode extends w2p_Core_BaseObject {
 
         return array('actualCost' => $actualCost, 'uncountedHours' => $uncountedHours);
     }
+
+    public function calculateProjectCost($project_id) {
+        $q = new w2p_Database_Query();
+        $q->addTable('tasks', 't');
+        $q->addJoin('task_log', 'tl', 'tl.task_log_task = t.task_id');
+        $q->leftJoin('billingcode', 'bc', 'bc.billingcode_id = tl.task_log_costcode');
+        $q->addWhere('t.task_project = '. (int) $project_id);
+        $logs = $q->loadList();
+
+        $actualCost = 0;
+        $uncountedHours = 0;
+
+        foreach ($logs as $tasklog) {
+            if (is_null($tasklog['billingcode_value'])) {
+                $uncountedHours += $tasklog['task_log_hours'];
+            } else {
+                $actualCost += $tasklog['task_log_hours'] * $tasklog['billingcode_value'];
+            }
+        }
+
+        return array('actualCost' => $actualCost, 'uncountedHours' => $uncountedHours);
+    }
 }

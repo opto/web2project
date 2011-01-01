@@ -217,17 +217,23 @@ echo '<font color="' . bestColor($project->project_color_identifier) . '"><stron
                 <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Target Budget'); ?>:</td>
                 <td class="hilite">
                     <?php
-                        echo $w2Pconfig['currency_symbol'];
+                        echo $w2Pconfig['currency_symbol'].'&nbsp;';
                         echo formatCurrency($project->project_target_budget, $AppUI->getPref('CURRENCYFORM'));
                     ?>
                 </td>
             </tr>
             <tr>
-                <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Target Budget'); ?>:</td>
+                <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Actual Cost'); ?>:</td>
                 <td class="hilite">
                     <?php
-                        echo $w2Pconfig['currency_symbol'];
-                        echo formatCurrency($project->project_actual_budget, $AppUI->getPref('CURRENCYFORM'));
+                        $bcode = new bcode();
+                        $results = $bcode->calculateProjectCost($project_id);
+
+                        echo $w2Pconfig['currency_symbol'].'&nbsp;';
+                        echo formatCurrency($results['actualCost'], $AppUI->getPref('CURRENCYFORM'));
+                        if ($results['uncountedHours'] > 0) {
+                            echo '<span style="float:right; font-style: italic;">'.$results['uncountedHours'].' hours without billing codes</span>';
+                        }
                     ?>
                 </td>
             </tr>
