@@ -27,12 +27,13 @@ $titleBlock->show();
 <script language="javascript" type="text/javascript">
 <!--
 function submitIt(){
-	var form = document.changeuser;
+	var form = document.frmAddcode;
 	form.submit();
 }
 
 function changeIt() {
 	var f=document.changeMe;
+    document.getElementById('company_filter').value = document.getElementById('company_id').value;
 	var msg = '';
 	f.submit();
 }
@@ -51,61 +52,67 @@ function delIt2(id) {
 	<input type="hidden" name="company_id" value="<?php echo $company_id; ?>" />
 	<input type="hidden" name="billingcode_id" value="" />
 </form>
+<form name="changeMe" action="./index.php?m=system&amp;a=billingcode" method="post" accept-charset="utf-8">
+    <input type="hidden" name="company_id" id="company_filter" value="" />
+</form>
 
-<table width="100%" border="0" cellpadding="1" cellspacing="1" class="std">
-    <tr>
-        <td>
-            <form name="changeMe" action="./index.php?m=system&a=billingcode" method="POST" accept-charset="utf-8">
-                <?php echo arraySelect($companies, 'company_id', 'size="1" class="text" onchange="changeIt();"', $company_id, false); ?>
-            </form>
-        </td>
-    </tr>
-    <tr>
-        <th width="40">&nbsp;
-        <form name="changeuser" action="./index.php?m=system" method="post" accept-charset="utf-8">
-            <input type="hidden" name="dosql" value="do_billingcode_aed" />
-            <input type="hidden" name="del" value="0" />
-            <input type="hidden" name="billingcode_status" value="0" />
-        </th>
-        <th><?php echo $AppUI->_('Company'); ?></th>
-        <th><?php echo $AppUI->_('Billing Code'); ?></th>
-        <th><?php echo $AppUI->_('Value'); ?></th>
-        <th><?php echo $AppUI->_('Description'); ?></th>
-    </tr>
-
-    <?php
-    foreach ($billingcodes as $code) {
-        ?><tr>
+<form name="frmAddcode" action="./index.php?m=system" method="post" accept-charset="utf-8">
+    <input type="hidden" name="dosql" value="do_billingcode_aed" />
+    <input type="hidden" name="del" value="0" />
+    <input type="hidden" name="billingcode_status" value="0" />
+    <table width="100%" border="0" cellpadding="1" cellspacing="1" class="std">
+        <tr>
             <td>
-                <a href="?m=system&a=billingcode&billingcode_id=<?php echo $code['billingcode_id']; ?>" title="<?php echo $AppUI->_('edit'); ?>">
-                    <img src="<?php echo w2PfindImage('icons/stock_edit-16.png'); ?>" border="0" alt="<?php echo $AppUI->_('edit'); ?>" />
-                </a>
-                <?php if (!$code['billingcode_status']) { ?>
-                    <a href="javascript:delIt2(<?php echo $code['billingcode_id']; ?>);" title="<?php echo $AppUI->_('delete'); ?>">
-                        <img src="<?php echo w2PfindImage('icons/stock_delete-16.png'); ?>" border="0" alt="<?php echo $AppUI->_('delete'); ?>" />
-                    </a>
-                <?php } ?>
+                <?php echo arraySelect($companies, 'company_id', 'size="1" class="text" onchange="changeIt();"', $company_id, false); ?>
             </td>
-            <td align="left">&nbsp;<?php echo (('' != $code['company_name']) ? $code['company_name'] : 'None specified'); ?></td>
-            <td align="left">&nbsp;<?php echo $code['billingcode_name'] . ($code['billingcode_status'] == 1 ? ' (deleted)' : ''); ?></td>
-            <td nowrap="nowrap" align="center"><?php echo $code['billingcode_value']; ?></td>
-            <td nowrap="nowrap"><?php echo $code['billingcode_desc']; ?></td>
-        </tr><?php
-    } ?>
-    <tr>
-        <td>&nbsp;<input type="hidden" name="billingcode_id" value="<?php echo $billingcode_id; ?>" /></td>
-        <td><?php echo arraySelect($companies, 'company_id', 'size="1" class="text"', $bcode->company_id, false); ?></td>
-        <td><input type="text" class="text" name="billingcode_name" value="<?php echo $bcode->billingcode_name; ?>" /></td>
-        <td><input type="text" class="text" name="billingcode_value" value="<?php echo $bcode->billingcode_value; ?>" /></td>
-        <td><input type="text" class="text" name="billingcode_desc" value="<?php echo $bcode->billingcode_desc; ?>" /></td>
-    </tr>
-    <tr>
-        <td align="left">
-            <input class="button"  type="button" value="<?php echo $AppUI->_('back'); ?>" onclick="javascript:history.back(-1);" />
-        </td>
-        <td colspan="3" align="right">
-            <input class="button" type="button" value="<?php echo $AppUI->_('submit'); ?>" onclick="submitIt()" />
-        </td>
-    </tr>
-</table>
+        </tr>
+        <tr>
+            <th width="40">&nbsp;
+            </th>
+            <th><?php echo $AppUI->_('Company'); ?></th>
+            <th><?php echo $AppUI->_('Billing Code'); ?></th>
+            <th><?php echo $AppUI->_('Value'); ?></th>
+            <th><?php echo $AppUI->_('Description'); ?></th>
+        </tr>
+
+        <?php
+        foreach ($billingcodes as $code) {
+            ?><tr>
+                <td>
+                    <a href="?m=system&a=billingcode&billingcode_id=<?php echo $code['billingcode_id']; ?>" title="<?php echo $AppUI->_('edit'); ?>">
+                        <img src="<?php echo w2PfindImage('icons/stock_edit-16.png'); ?>" border="0" alt="<?php echo $AppUI->_('edit'); ?>" />
+                    </a>
+                    <?php if (!$code['billingcode_status']) { ?>
+                        <a href="javascript:delIt2(<?php echo $code['billingcode_id']; ?>);" title="<?php echo $AppUI->_('delete'); ?>">
+                            <img src="<?php echo w2PfindImage('icons/stock_delete-16.png'); ?>" border="0" alt="<?php echo $AppUI->_('delete'); ?>" />
+                        </a>
+                    <?php } ?>
+                </td>
+                <td align="left">&nbsp;<?php echo (('' != $code['company_name']) ? $code['company_name'] : 'None specified'); ?></td>
+                <td align="left">&nbsp;<?php echo $code['billingcode_name'] . ($code['billingcode_status'] == 1 ? ' (deleted)' : ''); ?></td>
+                <td nowrap="nowrap" align="center"><?php echo $code['billingcode_value']; ?></td>
+                <td nowrap="nowrap"><?php echo $code['billingcode_desc']; ?></td>
+            </tr><?php
+        } ?>
+        <tr>
+            <td>&nbsp;<input type="hidden" name="billingcode_id" value="<?php echo $billingcode_id; ?>" /></td>
+            <td>
+                <?php
+                    unset($companies[-1]);
+                    echo arraySelect($companies, 'company_id', 'size="1" class="text"', $bcode->company_id, false);
+                ?>
+            </td>
+            <td><input type="text" class="text" name="billingcode_name" value="<?php echo $bcode->billingcode_name; ?>" /></td>
+            <td><input type="text" class="text" name="billingcode_value" value="<?php echo $bcode->billingcode_value; ?>" /></td>
+            <td><input type="text" class="text" name="billingcode_desc" value="<?php echo $bcode->billingcode_desc; ?>" /></td>
+        </tr>
+        <tr>
+            <td align="left">
+                <input class="button"  type="button" value="<?php echo $AppUI->_('back'); ?>" onclick="javascript:history.back(-1);" />
+            </td>
+            <td colspan="3" align="right">
+                <input class="button" type="button" value="<?php echo $AppUI->_('submit'); ?>" onclick="submitIt()" />
+            </td>
+        </tr>
+    </table>
 </form>
