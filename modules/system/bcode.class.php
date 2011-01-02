@@ -84,12 +84,16 @@ class bcode extends w2p_Core_BaseObject {
         return $q->loadHashList('billingcode_id');
     }
 
-    public function calculateTaskCost($task_id) {
+    public function calculateTaskCost($task_id, $start_date = null, $end_date = null) {
         $q = new w2p_Database_Query();
         $q->addTable('task_log', 'tl');
         $q->addQuery('task_log_hours, billingcode_value');
         $q->leftJoin('billingcode', 'bc', 'bc.billingcode_id = tl.task_log_costcode');
         $q->addWhere('tl.task_log_task = '. (int) $task_id);
+        if ($start && $end) {
+            $q->addWhere("tl.task_log_date >= '$start_date'");
+            $q->addWhere("tl.task_log_date <= '$end_date'");
+        }
         $logs = $q->loadList();
 
         $actualCost = 0;
@@ -106,12 +110,16 @@ class bcode extends w2p_Core_BaseObject {
         return array('actualCost' => $actualCost, 'uncountedHours' => $uncountedHours);
     }
 
-    public function calculateProjectCost($project_id) {
+    public function calculateProjectCost($project_id, $start_date = null, $end_date = null) {
         $q = new w2p_Database_Query();
         $q->addTable('tasks', 't');
         $q->addJoin('task_log', 'tl', 'tl.task_log_task = t.task_id');
         $q->leftJoin('billingcode', 'bc', 'bc.billingcode_id = tl.task_log_costcode');
         $q->addWhere('t.task_project = '. (int) $project_id);
+        if ($start && $end) {
+            $q->addWhere("tl.task_log_date >= '$start_date'");
+            $q->addWhere("tl.task_log_date <= '$end_date'");
+        }
         $logs = $q->loadList();
 
         $actualCost = 0;
