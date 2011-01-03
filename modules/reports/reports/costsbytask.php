@@ -79,7 +79,7 @@ function setDate( frm_name, f_date ) {
     </table>
 </form>
 
-<table width="100%" class="tbl" cellspacing="1" cellpadding="2" border="0">
+<table width="100%" class="tbl" cellspacing="1" cellpadding="3" border="0">
 	<tr>
         <th width="10px" nowrap="nowrap"><?php echo $AppUI->_('Work'); ?></th>
         <th><?php echo $AppUI->_('Task Name'); ?></th>
@@ -89,11 +89,10 @@ function setDate( frm_name, f_date ) {
         <th width="10px" align="center"><?php echo $AppUI->_('Target Budget'); ?></th>
         <th width="10px" align="center"><?php echo $AppUI->_('Actual Cost'); ?></th>
         <th width="10px" align="center"><?php echo $AppUI->_('Diff'); ?></th>
-        <th width="10px" align="center"><?php echo $AppUI->_('% Diff'); ?></th>
         <th width="10px" align="center"><?php echo $AppUI->_('Daily Budget'); ?></th>
         <th width="10px" align="center"><?php echo $AppUI->_('Daily Cost'); ?></th>
         <th width="10px" align="center"><?php echo $AppUI->_('Diff'); ?></th>
-        <th width="20px" align="center"><?php echo $AppUI->_('% Diff'); ?></th>
+        <th width="10px" align="center"><?php echo $AppUI->_('% Diff'); ?></th>
     </tr>
     <?php
     //TODO: rotate the headers by 90 degrees?
@@ -147,20 +146,9 @@ function setDate( frm_name, f_date ) {
                 <td align="center">
                     <?php
                     $diff_total = (int) ($task->task_target_budget - $costs['actualCost']);
-                    $diff_total = $w2Pconfig['currency_symbol'].$diff_total;
                     echo ($diff_total < 0) ? '<span style="color: red;">' : '';
-                    echo $diff_total;
+                    echo $w2Pconfig['currency_symbol'].$diff_total;
                     echo ($diff_total < 0) ? '</span>' : '';
-                    ?>
-                </td>
-                <td align="center">
-                    <?php
-                    $perDiff_total = '-';
-                    if ($task->task_target_budget > 0) {
-                        $perDiff_total = 100 * $costs['actualCost'] / $task->task_target_budget;
-                        $perDiff_total = (int) $perDiff.'%';
-                    }
-                    echo $perDiff_total;
                     ?>
                 </td>
                 <td align="center">
@@ -168,9 +156,8 @@ function setDate( frm_name, f_date ) {
                     $dailyBudget = '-';
                     if ($workingDays > 0) {
                         $dailyBudget = (int) ($task->task_target_budget/$workingDays);
-                        $dailyBudget = $w2Pconfig['currency_symbol'].$dailyBudget;
                     }
-                    echo $dailyBudget;
+                    echo $w2Pconfig['currency_symbol'].$dailyBudget;
                     ?>
                 </td>
                 <td align="center">
@@ -178,27 +165,26 @@ function setDate( frm_name, f_date ) {
                     $dailyCosts = '-';
                     if ($workingDays > 0) {
                         $dailyCosts = (int) ($costs['actualCost']/$workingDays);
-                        $dailyCosts = $w2Pconfig['currency_symbol'].$dailyCosts;
                     }
-                    echo $dailyCosts;
+                    echo $w2Pconfig['currency_symbol'].$dailyCosts;
                     ?>
                 </td>
                 <td align="center">
                     <?php
                     $diff_daily = (int) ($dailyBudget - $dailyCosts);
                     echo ($diff_daily < 0) ? '<span style="color: red;">' : '';
-                    echo $diff_daily;
+                    echo $w2Pconfig['currency_symbol'].$diff_daily;
                     echo ($diff_daily < 0) ? '</span>' : '';
                     ?>
                 </td>
                 <td align="center">
                     <?php
-                    $perDiff_daily = '-';
-                    if ($dailyBudget > 0) {
-                        $perDiff_daily = 100 * $dailyCosts / $dailyBudget;
-                        $perDiff_daily = (int) $perDiff_daily.'%';
+                    $perDiff_total = '-';
+                    if ($task->task_target_budget > 0) {
+                        $perDiff_total = 100 * $costs['actualCost'] / $task->task_target_budget;
+                        $perDiff_total = (int) $perDiff_total.'%';
                     }
-                    echo $perDiff_daily;
+                    echo $perDiff_total;
                     ?>
                 </td>
             </tr><?php
@@ -206,8 +192,10 @@ function setDate( frm_name, f_date ) {
                 '  '.$taskName, $contactName,
                 $AppUI->formatTZAwareTime($task->task_start_date, $df),
                 $AppUI->formatTZAwareTime($task->task_end_date, $df),
-                $targetCost, $actualCost, $diff_total, $perDiff_total,
-                $dailyBudget, $dailyCosts, $diff_daily, $perDiff_daily);
+                $targetCost, $actualCost, $w2Pconfig['currency_symbol'].$diff_total,
+                $w2Pconfig['currency_symbol'].$dailyBudget,
+                $w2Pconfig['currency_symbol'].$dailyCosts,
+                $w2Pconfig['currency_symbol'].$diff_daily, $perDiff_total);
         }
 
         if ($log_pdf) {
@@ -229,26 +217,25 @@ function setDate( frm_name, f_date ) {
                 '  '.$AppUI->_('Project Name', UI_OUTPUT_JS), $AppUI->_('Project Owner', UI_OUTPUT_JS),
                 $AppUI->_('Start Date', UI_OUTPUT_JS), $AppUI->_('Finish Date', UI_OUTPUT_JS),
                 $AppUI->_('Target Budget', UI_OUTPUT_JS), $AppUI->_('Actual Cost', UI_OUTPUT_JS),
-                $AppUI->_('Diff', UI_OUTPUT_JS), $AppUI->_('% Diff', UI_OUTPUT_JS),
+                $AppUI->_('Diff', UI_OUTPUT_JS),
                 $AppUI->_('Daily Budget', UI_OUTPUT_JS), $AppUI->_('Daily Cost', UI_OUTPUT_JS),
                 $AppUI->_('Diff', UI_OUTPUT_JS), $AppUI->_('% Diff', UI_OUTPUT_JS));
 
-            $options = array('showLines' => 1, 'fontSize' => 8, 'rowGap' => 1,
+            $options = array('showLines' => 1, 'fontSize' => 9, 'rowGap' => 1,
                 'colGap' => 1, 'xPos' => 50, 'xOrientation' => 'right', 'width' => '500',
                 'cols' => array(
-                            0 => array('justification' => 'center', 'width' => 30),
-                            1 => array('justification' => 'left', 'width' => 150),
+                            0 => array('justification' => 'center', 'width' => 40),
+                            1 => array('justification' => 'left', 'width' => 175),
                             2 => array('justification' => 'center', 'width' => 75),
                             3 => array('justification' => 'center', 'width' => 60),
                             4 => array('justification' => 'center', 'width' => 60),
                             5 => array('justification' => 'center', 'width' => 50),
                             6 => array('justification' => 'center', 'width' => 50),
                             7 => array('justification' => 'center', 'width' => 50),
-                            8 => array('justification' => 'center', 'width' => 30),
+                            8 => array('justification' => 'center', 'width' => 45),
                             9 => array('justification' => 'center', 'width' => 45),
                             10 => array('justification' => 'center', 'width' => 45),
-                            11 => array('justification' => 'center', 'width' => 45),
-                            12 => array('justification' => 'center', 'width' => 30),
+                            11 => array('justification' => 'center', 'width' => 35),
                     ));
 
             $pdf->ezTable($pdfdata, $pdfheaders, $title, $options);
