@@ -22,7 +22,7 @@ if (!$log_start_date) {
 }
 $end_date->setTime(23, 59, 59);
 ?>
-<script language="javascript">
+<script language="javascript" type="text/javascript">
 function setDate( frm_name, f_date ) {
 	fld_date = eval( 'document.' + frm_name + '.' + f_date );
 	fld_real_date = eval( 'document.' + frm_name + '.' + 'log_' + f_date );
@@ -81,19 +81,19 @@ function setDate( frm_name, f_date ) {
 
 <table width="100%" class="tbl" cellspacing="1" cellpadding="2" border="0">
 	<tr>
-        <th width="10px" nowrap="true">Work</th>
-        <th>Task Name</th>
-        <th width="10px" align="center">Task Owner</th>
-        <th width="10px" align="center">Start Date</th>
-        <th width="10px" align="center">Finish Date</th>
-        <th width="10px" align="center">Target Budget</th>
-        <th width="10px" align="center">Actual Cost</th>
-        <th width="10px" align="center">Diff</th>
-        <th width="10px" align="center">% Diff</th>
-        <th width="10px" align="center">Daily Budget</th>
-        <th width="10px" align="center">Daily Cost</th>
-        <th width="10px" align="center">Diff</th>
-        <th width="20px" align="center">% Diff</th>
+        <th width="10px" nowrap="nowrap"><?php echo $AppUI->_('Work'); ?></th>
+        <th><?php echo $AppUI->_('Task Name'); ?></th>
+        <th width="10px" align="center"><?php echo $AppUI->_('Task Owner'); ?></th>
+        <th width="10px" align="center"><?php echo $AppUI->_('Start Date'); ?></th>
+        <th width="10px" align="center"><?php echo $AppUI->_('Finish Date'); ?></th>
+        <th width="10px" align="center"><?php echo $AppUI->_('Target Budget'); ?></th>
+        <th width="10px" align="center"><?php echo $AppUI->_('Actual Cost'); ?></th>
+        <th width="10px" align="center"><?php echo $AppUI->_('Diff'); ?></th>
+        <th width="10px" align="center"><?php echo $AppUI->_('% Diff'); ?></th>
+        <th width="10px" align="center"><?php echo $AppUI->_('Daily Budget'); ?></th>
+        <th width="10px" align="center"><?php echo $AppUI->_('Daily Cost'); ?></th>
+        <th width="10px" align="center"><?php echo $AppUI->_('Diff'); ?></th>
+        <th width="20px" align="center"><?php echo $AppUI->_('% Diff'); ?></th>
     </tr>
     <?php
     //TODO: rotate the headers by 90 degrees?
@@ -111,9 +111,9 @@ function setDate( frm_name, f_date ) {
             ?><tr>
                 <td><?php echo $task->task_percent_complete; ?>%</td>
                 <td>
-                    <a href="?m=tasks&amp;a=view&amp;task_id=<?php echo $task->task_id; ?>"><?php echo $task->task_name; ?></a>
+                    <a href="?m=tasks&amp;a=view&amp;task_id=<?php echo $task->task_id; ?>"><?php echo htmlentities($task->task_name); ?></a>
                 </td>
-                <td align="center"><?php echo CContact::getContactByUserid($task->task_owner); ?></td>
+                <td align="center"><?php echo htmlentities(CContact::getContactByUserid($task->task_owner)); ?></td>
                 <td><?php echo $AppUI->formatTZAwareTime($task->task_start_date, $df); ?></td>
                 <td><?php echo $AppUI->formatTZAwareTime($task->task_end_date, $df); ?></td>
                 <td align="center"><?php echo (int) $task->task_target_budget; ?></td>
@@ -159,7 +159,7 @@ function setDate( frm_name, f_date ) {
                     $diff = (int) ($dailyBudget - $dailyCosts);
                     echo ($diff < 0) ? '<span style="color: red;">' : '';
                     echo $diff;
-                    echo ($diff < 0) ? '<span style="color: red;">' : '';
+                    echo ($diff < 0) ? '</span>' : '';
                     ?>
                 </td>
                 <td align="center">
