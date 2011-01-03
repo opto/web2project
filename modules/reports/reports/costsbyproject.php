@@ -116,13 +116,19 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
                     <font color="<?php echo bestColor($project->project_color_identifier); ?>"><?php echo sprintf('%.1f%%', $project->project_percent_complete); ?></font>
                 </td>
                 <td>
-                    <a href="?m=projects&amp;a=view&amp;project_id=<?php echo $project->project_id; ?>"><?php echo htmlentities($project->project_name); ?></a>
+                    <a href="?m=projects&amp;a=view&amp;project_id=<?php echo $project->project_id; ?>">
+                        <?php
+                        $projectName = htmlentities($project->project_name);
+                        echo $projectName;
+                        ?>
+                    </a>
                 </td>
                 <td align="center">
                     <?php
                     $contactName = htmlentities(CContact::getContactByUserid($project->project_owner));
                     echo $contactName;
-                    ?></td>
+                    ?>
+                </td>
                 <td><?php echo $AppUI->formatTZAwareTime($project->project_start_date, $df); ?></td>
                 <td><?php echo $AppUI->formatTZAwareTime($criticalTasks[0]['task_end_date'], $df); ?></td>
                 <td align="center">
@@ -197,7 +203,7 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
                 </td>
             </tr><?php
             $pdfdata[] = array(sprintf('%.1f%%', $project->project_percent_complete), 
-                '  '.$project->project_name, $contactName,
+                '  '.$projectName, $contactName,
                 $AppUI->formatTZAwareTime($project->project_start_date, $df),
                 $AppUI->formatTZAwareTime($criticalTasks[0]['task_end_date'], $df),
                 $targetCost, $actualCost, $diff_total, $perDiff_total,
@@ -213,11 +219,11 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
 
             $pdf = new Cezpdf($paper = 'A4', $orientation = 'landscape');
             $pdf->ezSetCmMargins(1, 1, 1, 1);
-            $pdf->selectFont($font_dir . '/Helvetica.afm');
-
-            $pdf->ezText($companies[$company_id], 12);
 
             $pdf->selectFont($font_dir . '/Helvetica-Bold.afm');
+            $pdf->ezText($companies[$company_id], 14);
+
+            $pdf->selectFont($font_dir . '/Helvetica.afm');
             $pdf->ezText($AppUI->_('Costs By Project') . "\n", 12);
 
             $pdfheaders = array($AppUI->_('Work', UI_OUTPUT_JS),

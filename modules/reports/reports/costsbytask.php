@@ -109,31 +109,52 @@ function setDate( frm_name, f_date ) {
             $tend   = new CDate($task->task_end_date);
             $workingDays = $tstart->workingDaysInSpan($tend);
             ?><tr>
-                <td><?php echo $task->task_percent_complete; ?>%</td>
+                <td><?php echo sprintf('%.1f%%', $task->task_percent_complete); ?>%</td>
                 <td>
-                    <a href="?m=tasks&amp;a=view&amp;task_id=<?php echo $task->task_id; ?>"><?php echo htmlentities($task->task_name); ?></a>
+                    <a href="?m=tasks&amp;a=view&amp;task_id=<?php echo $task->task_id; ?>">
+                        <?php
+                        $taskName = htmlentities($task->task_name);
+                        echo $taskName;
+                        ?>
+                    </a>
                 </td>
-                <td align="center"><?php echo htmlentities(CContact::getContactByUserid($task->task_owner)); ?></td>
-                <td><?php echo $AppUI->formatTZAwareTime($task->task_start_date, $df); ?></td>
-                <td><?php echo $AppUI->formatTZAwareTime($task->task_end_date, $df); ?></td>
-                <td align="center"><?php echo (int) $task->task_target_budget; ?></td>
-                <td align="center"><?php echo (int) $costs['actualCost']; ?></td>
                 <td align="center">
                     <?php
-                    $diff = (int) ($task->task_target_budget - $costs['actualCost']);
-                    echo ($diff < 0) ? '<span style="color: red;">' : '';
-                    echo $diff;
-                    echo ($diff < 0) ? '</span>' : '';
+                    $contactName = htmlentities(CContact::getContactByUserid($task->task_owner));
+                    echo $contactName;
+                    ?>
+                </td>
+                <td><?php echo $AppUI->formatTZAwareTime($task->task_start_date, $df); ?></td>
+                <td><?php echo $AppUI->formatTZAwareTime($task->task_end_date, $df); ?></td>
+                <td align="center">
+                    <?php
+                        $targetCost = $w2Pconfig['currency_symbol'].((int) $task->task_target_budget);
+                        echo $targetCost;
                     ?>
                 </td>
                 <td align="center">
                     <?php
-                    $perDiff = '-';
+                        $actualCost = $w2Pconfig['currency_symbol'].((int) $costs['actualCost']);
+                        echo $actualCost;
+                    ?>
+                </td>
+                <td align="center">
+                    <?php
+                    $diff_total = (int) ($task->task_target_budget - $costs['actualCost']);
+                    $diff_total = $w2Pconfig['currency_symbol'].$diff_total;
+                    echo ($diff_total < 0) ? '<span style="color: red;">' : '';
+                    echo $diff_total;
+                    echo ($diff_total < 0) ? '</span>' : '';
+                    ?>
+                </td>
+                <td align="center">
+                    <?php
+                    $perDiff_total = '-';
                     if ($task->task_target_budget > 0) {
-                        $perDiff = 100 * $costs['actualCost'] / $task->task_target_budget;
-                        $perDiff = (int) $perDiff.'%';
+                        $perDiff_total = 100 * $costs['actualCost'] / $task->task_target_budget;
+                        $perDiff_total = (int) $perDiff.'%';
                     }
-                    echo $perDiff;
+                    echo $perDiff_total;
                     ?>
                 </td>
                 <td align="center">
@@ -141,6 +162,7 @@ function setDate( frm_name, f_date ) {
                     $dailyBudget = '-';
                     if ($workingDays > 0) {
                         $dailyBudget = (int) ($task->task_target_budget/$workingDays);
+                        $dailyBudget = $w2Pconfig['currency_symbol'].$dailyBudget;
                     }
                     echo $dailyBudget;
                     ?>
@@ -150,29 +172,98 @@ function setDate( frm_name, f_date ) {
                     $dailyCosts = '-';
                     if ($workingDays > 0) {
                         $dailyCosts = (int) ($costs['actualCost']/$workingDays);
+                        $dailyCosts = $w2Pconfig['currency_symbol'].$dailyCosts;
                     }
                     echo $dailyCosts;
                     ?>
                 </td>
                 <td align="center">
                     <?php
-                    $diff = (int) ($dailyBudget - $dailyCosts);
-                    echo ($diff < 0) ? '<span style="color: red;">' : '';
-                    echo $diff;
-                    echo ($diff < 0) ? '</span>' : '';
+                    $diff_daily = (int) ($dailyBudget - $dailyCosts);
+                    echo ($diff_daily < 0) ? '<span style="color: red;">' : '';
+                    echo $diff_daily;
+                    echo ($diff_daily < 0) ? '</span>' : '';
                     ?>
                 </td>
                 <td align="center">
                     <?php
-                    $perDiff = '-';
+                    $perDiff_daily = '-';
                     if ($dailyBudget > 0) {
-                        $perDiff = 100 * $dailyCosts / $dailyBudget;
-                        $perDiff = (int) $perDiff.'%';
+                        $perDiff_daily = 100 * $dailyCosts / $dailyBudget;
+                        $perDiff_daily = (int) $perDiff_daily.'%';
                     }
-                    echo $perDiff;
+                    echo $perDiff_daily;
                     ?>
                 </td>
             </tr><?php
+            $pdfdata[] = array(sprintf('%.1f%%', $task->task_percent_complete),
+                '  '.$taskName, $contactName,
+                $AppUI->formatTZAwareTime($task->task_start_date, $df),
+                $AppUI->formatTZAwareTime($task->task_end_date, $df),
+                $targetCost, $actualCost, $diff_total, $perDiff_total,
+                $dailyBudget, $dailyCosts, $diff_daily, $perDiff_daily);
+        }
+
+        if ($log_pdf) {
+            // make the PDF file
+            $font_dir = W2P_BASE_DIR . '/lib/ezpdf/fonts';
+            $temp_dir = W2P_BASE_DIR . '/files/temp';
+
+            require ($AppUI->getLibraryClass('ezpdf/class.ezpdf'));
+
+            $pdf = new Cezpdf($paper = 'A4', $orientation = 'landscape');
+            $pdf->ezSetCmMargins(1, 1, 1, 1);
+            $pdf->selectFont($font_dir . '/Helvetica-Bold.afm');
+            $pdf->ezText($projectList[$project_id]['project_name'], 14);
+
+            $pdf->selectFont($font_dir . '/Helvetica.afm');
+            $pdf->ezText($AppUI->_('Costs By Task') . "\n", 12);
+
+            $pdfheaders = array($AppUI->_('Work', UI_OUTPUT_JS),
+                '  '.$AppUI->_('Project Name', UI_OUTPUT_JS), $AppUI->_('Project Owner', UI_OUTPUT_JS),
+                $AppUI->_('Start Date', UI_OUTPUT_JS), $AppUI->_('Finish Date', UI_OUTPUT_JS),
+                $AppUI->_('Target Budget', UI_OUTPUT_JS), $AppUI->_('Actual Cost', UI_OUTPUT_JS),
+                $AppUI->_('Diff', UI_OUTPUT_JS), $AppUI->_('% Diff', UI_OUTPUT_JS),
+                $AppUI->_('Daily Budget', UI_OUTPUT_JS), $AppUI->_('Daily Cost', UI_OUTPUT_JS),
+                $AppUI->_('Diff', UI_OUTPUT_JS), $AppUI->_('% Diff', UI_OUTPUT_JS));
+
+            $options = array('showLines' => 1, 'fontSize' => 8, 'rowGap' => 1,
+                'colGap' => 1, 'xPos' => 50, 'xOrientation' => 'right', 'width' => '500',
+                'cols' => array(
+                            0 => array('justification' => 'center', 'width' => 30),
+                            1 => array('justification' => 'left', 'width' => 150),
+                            2 => array('justification' => 'center', 'width' => 75),
+                            3 => array('justification' => 'center', 'width' => 60),
+                            4 => array('justification' => 'center', 'width' => 60),
+                            5 => array('justification' => 'center', 'width' => 50),
+                            6 => array('justification' => 'center', 'width' => 50),
+                            7 => array('justification' => 'center', 'width' => 50),
+                            8 => array('justification' => 'center', 'width' => 30),
+                            9 => array('justification' => 'center', 'width' => 45),
+                            10 => array('justification' => 'center', 'width' => 45),
+                            11 => array('justification' => 'center', 'width' => 45),
+                            12 => array('justification' => 'center', 'width' => 30),
+                    ));
+
+            $pdf->ezTable($pdfdata, $pdfheaders, $title, $options);
+
+            $w2pReport = new CReport();
+            if ($fp = fopen($temp_dir . '/'.$w2pReport->getFilename().'.pdf', 'wb')) {
+                fwrite($fp, $pdf->ezOutput());
+                fclose($fp);
+                echo '<tr><td colspan="13">';
+                echo '<a href="' . W2P_BASE_URL . '/files/temp/' . $w2pReport->getFilename() . '.pdf" target="pdf">';
+                echo $AppUI->_('View PDF File');
+                echo '</a>';
+                echo '</td></tr>';
+            } else {
+                echo '<tr><td colspan="13">';
+                echo 'Could not open file to save PDF.  ';
+                if (!is_writable($temp_dir)) {
+                    echo 'The files/temp directory is not writable.  Check your file system permissions.';
+                }
+                echo '</td></tr>';
+            }
         }
     } else {
         echo '<tr><td colspan="13">'.$AppUI->_('There are no tasks on this project').'</td></tr>';
