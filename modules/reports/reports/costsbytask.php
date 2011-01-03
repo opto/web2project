@@ -109,12 +109,18 @@ function setDate( frm_name, f_date ) {
             $tend   = new CDate($task->task_end_date);
             $workingDays = $tstart->workingDaysInSpan($tend);
             ?><tr>
-                <td><?php echo sprintf('%.1f%%', $task->task_percent_complete); ?>%</td>
+                <td align="center"><?php echo sprintf('%.0f%%', $task->task_percent_complete); ?></td>
                 <td>
+                    <?php if ($task->task_id != $task->task_parent) { ?>
+                        <img src="<?php echo w2PfindImage('corner-dots.gif'); ?>" width="16" height="12" border="0" alt="">
+                    <?php } ?>
                     <a href="?m=tasks&amp;a=view&amp;task_id=<?php echo $task->task_id; ?>">
                         <?php
                         $taskName = htmlentities($task->task_name);
                         echo $taskName;
+                        if ($task->task_id != $task->task_parent) {
+                            $taskName = '--'.$taskName;
+                        }
                         ?>
                     </a>
                 </td>
