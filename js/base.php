@@ -8,19 +8,19 @@ global $uistyle;
 function gt_hide_tabs() {
 	var tabs = document.getElementsByTagName('td');
 	var i;
-	for (i = 0, i_cmp = tabs.length; i < i_cmp; i++) {
+	for (i = 0, i_cmp = tabs.length; i &lt; i_cmp; i++) {
 		if (tabs[i].className == 'tabon') {
 			tabs[i].className = 'taboff';
 		}
 	}
 	var divs = document.getElementsByTagName('div');
-	for (i =0, i_cmp = divs.length; i < i_cmp; i++) {
+	for (i =0, i_cmp = divs.length; i &lt; i_cmp; i++) {
 		if (divs[i].className == 'tab') {
 			divs[i].style.display = 'none';
 		}
 	}
 	var imgs = document.getElementsByTagName('img');
-	for (i = 0, i_cmp = imgs.length; i < i_cmp; i++) {
+	for (i = 0, i_cmp = imgs.length; i &lt; i_cmp; i++) {
 		if (imgs[i].id) {
 			if (imgs[i].id.substr(0,8) == 'lefttab_') {
 				imgs[i].src = './style/<?php echo $uistyle; ?>/images/bar_top_left.gif';

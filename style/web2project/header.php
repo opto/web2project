@@ -41,7 +41,7 @@ require W2P_BASE_DIR . '/includes/ajax_functions.php';
                                 &nbsp;
                             </th>
                             <th style="background: url(style/<?php echo $uistyle; ?>/images/title_bkgd.jpg);" align="right" width="123"><a href='http://www.web2project.net/' <?php if ($dialog)
-                            echo 'target="_blank"'; ?>><?php echo w2PtoolTip('web2Project v. ' . $AppUI->getVersion(), 'click to visit web2Project site', true);?><img src="style/<?php echo $uistyle; ?>/images/title.jpg" border="0" class="banner" align="left" alt="click to visit web2Project site" /><?php echo w2PendTip();?></th>
+                            echo 'target="_blank"'; ?>><?php echo w2PtoolTip('web2Project v. ' . $AppUI->getVersion(), 'click to visit web2Project site', true);?><img src="style/<?php echo $uistyle; ?>/images/title.jpg" border="0" class="banner" align="left" alt="click to visit web2Project site" /><?php echo w2PendTip();?></a></th>
                             <th style="background: url(style/<?php echo $uistyle; ?>/images/title_bkgd.jpg);" align="right" width="5">
                                 <!--a little spacer-->
                                 &nbsp;
