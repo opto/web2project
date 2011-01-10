@@ -37,7 +37,8 @@ $project->load($obj->task_project);
 $bcode = new bcode();
 $companyBC = $bcode->getBillingCodes($proj->project_company);
 $neutralBC = $bcode->getBillingCodes(0);
-
+$taskLogReference = w2PgetSysVal('TaskLogReference');
+$billingCategory = w2PgetSysVal('BudgetCategory');
 // Task Update Form
 $df = $AppUI->getPref('SHDATEFORMAT');
 $log_date = new w2p_Utilities_Date($log->task_log_date);
@@ -187,7 +188,7 @@ $log_date = new w2p_Utilities_Date($log->task_log_date);
                                 <select name="task_log_creator" class="text">
                                     <option value=""></option>
                                     <?php
-                                    //TODO: update for arraySelect()
+//TODO: update for arraySelect()
                                     foreach ($task->getAssignedUsers($task->task_id) as $task_user) {
                                         $task_user['user_id'] == $user_id ? $selected = 'selected="selected"' : $selected = '';
                                         ?>
@@ -220,15 +221,20 @@ $log_date = new w2p_Utilities_Date($log->task_log_date);
                                 <option value="0" />
                                 <?php
                                 if (count($companyBC)) {
-                                    echo '<optgroup label="'.$companyBC[0]['company_name'].'" />';
+                                    $myKeys = array_keys($companyBC);
+                                    echo '<optgroup label="'.$companyBC[$myKeys[0]]['company_name'].'" />';
                                     foreach($companyBC as $bcode) {
-                                        echo '<option value="'.$bcode['billingcode_id'].'">'.$bcode['billingcode_name'].'</option>';
+                                        echo '<option value="'.$bcode['billingcode_id'].'">'.$bcode['billingcode_name'];
+                                        echo ('' != $bcode['billingcode_category']) ? ' ('.$billingCategory[$bcode['billingcode_category']].')' : '';
+                                        echo '</option>';
                                     }
                                 }
                                 if (count($neutralBC)) {
-                                        echo '<optgroup label="'.$AppUI->_('No company specified').'" />';
+                                    echo '<optgroup label="'.$AppUI->_('No company specified').'" />';
                                     foreach($neutralBC as $bcode) {
-                                        echo '<option value="'.$bcode['billingcode_id'].'">'.$bcode['billingcode_name'].'</option>';
+                                        echo '<option value="'.$bcode['billingcode_id'].'">'.$bcode['billingcode_name'];
+                                        echo ('' != $bcode['billingcode_category']) ? ' ('.$billingCategory[$bcode['billingcode_category']].')' : '';
+                                        echo '</option>';
                                     }
                                 }
                                 ?>

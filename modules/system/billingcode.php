@@ -19,6 +19,8 @@ $company = new CCompany();
 $companies = $company->getAllowedRecords($AppUI->user_id, 'company_id,company_name', 'company_name');
 $companies = arrayMerge(array('0' => $AppUI->_('None specified')), $companies);
 $companies = arrayMerge(array('-1' => $AppUI->_('All Codes')), $companies);
+$billingCategory = w2PgetSysVal('BudgetCategory');
+$billingCategory = arrayMerge(array('0' => $AppUI->_('None specified')), $billingCategory);
 
 $titleBlock = new w2p_Theme_TitleBlock('Edit Billing Codes', 'myevo-weather.png', $m, $m . '.' . $a);
 $titleBlock->addCrumb('?m=system', 'system admin');
@@ -73,6 +75,7 @@ function delIt2(id) {
             <th><?php echo $AppUI->_('Billing Code'); ?></th>
             <th><?php echo $AppUI->_('Value'); ?></th>
             <th><?php echo $AppUI->_('Description'); ?></th>
+            <th><?php echo $AppUI->_('Billing Category'); ?></th>
         </tr>
 
         <?php
@@ -92,6 +95,7 @@ function delIt2(id) {
                 <td align="left">&nbsp;<?php echo $code['billingcode_name'] . ($code['billingcode_status'] == 1 ? ' (deleted)' : ''); ?></td>
                 <td nowrap="nowrap" align="center"><?php echo $code['billingcode_value']; ?></td>
                 <td nowrap="nowrap"><?php echo $code['billingcode_desc']; ?></td>
+                <td nowrap="nowrap"><?php echo $billingCategory[$code['billingcode_category']]; ?></td>
             </tr><?php
         } ?>
         <tr>
@@ -103,8 +107,13 @@ function delIt2(id) {
                 ?>
             </td>
             <td><input type="text" class="text" name="billingcode_name" value="<?php echo $bcode->billingcode_name; ?>" /></td>
-            <td><input type="text" class="text" name="billingcode_value" value="<?php echo $bcode->billingcode_value; ?>" /></td>
+            <td align="center"><input type="text" class="text" name="billingcode_value" value="<?php echo $bcode->billingcode_value; ?>" size="7" /></td>
             <td><input type="text" class="text" name="billingcode_desc" value="<?php echo $bcode->billingcode_desc; ?>" /></td>
+            <td>
+                <?php
+                    echo arraySelect($billingCategory, 'billingcode_category', 'size="1" class="text"', $bcode->billingcode_category, false);
+                ?>
+            </td>
         </tr>
         <tr>
             <td align="left">

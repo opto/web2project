@@ -2,12 +2,13 @@
 
 class bcode extends w2p_Core_BaseObject {
 	public $_billingcode_id = null;
-	public $company_id;
+	public $company_id = 0;
 	public $billingcode_id = null;
 	public $billingcode_desc;
 	public $billingcode_name;
 	public $billingcode_value;
 	public $billingcode_status;
+    public $billingcode_category = '';
 
 	public function __construct() {
 		parent::__construct('billingcode', 'billingcode_id');
