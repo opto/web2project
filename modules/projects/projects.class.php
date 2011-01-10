@@ -941,14 +941,18 @@ class CProject extends w2p_Core_BaseObject {
 
 		return rtrim($total_project_hours, '.');
 	}
-	public function getTaskLogs(w2p_Core_CAppUI $AppUI = null, $projectId, $user_id = 0, $hide_inactive = false, $hide_complete = false, $cost_code = 0) {
+
+//TODO: this method should be moved to CTaskLog
+	public function getTaskLogs(w2p_Core_CAppUI $AppUI = null, $projectId, $user_id = 0,
+            $hide_inactive = false, $hide_complete = false, $cost_code = 0) {
+
         global $AppUI;
 
 		$q = $this->_query;
 		$q->addTable('task_log');
 		$q->addQuery('DISTINCT task_log.*, user_username, task_id');
 		$q->addQuery("CONCAT(contact_first_name, ' ', contact_last_name) AS real_name");
-		$q->addQuery('billingcode_name as task_log_costcode');
+		$q->addQuery('billingcode_name as task_log_costcode, billingcode_category');
 		$q->addJoin('users', 'u', 'user_id = task_log_creator');
 		$q->addJoin('tasks', 't', 'task_log_task = t.task_id');
 		$q->addJoin('contacts', 'ct', 'contact_id = user_contact');

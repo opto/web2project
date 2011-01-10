@@ -14,6 +14,7 @@ $problem = (int) w2PgetParam($_GET, 'problem', null);
 // get sysvals
 $taskLogReference = w2PgetSysVal('TaskLogReference');
 $taskLogReferenceImage = w2PgetSysVal('TaskLogReferenceImage');
+$billingCategory = w2PgetSysVal('BudgetCategory');
 ?>
 <script language="javascript" type="text/javascript">
 <?php
@@ -71,7 +72,8 @@ function delIt2(id) {
     </tr>
 <?php
 // Pull the task comments
- $task= new CTask();
+$task= new CTask();
+//TODO: this method should be moved to CTaskLog
 $logs = $task->getTaskLogs($task_id, $problem);
 
 $s = '';
@@ -110,7 +112,8 @@ foreach ($logs as $row) {
 	$minutes = round($minutes, 0, PHP_ROUND_HALF_UP);
 	$minutes = (($minutes < 10) ? ('0' . $minutes) : $minutes);
 	$s .= (int)$row['task_log_hours'] . ':' . $minutes . ')</td>';
-	$s .= '<td width="100">' . $row['task_log_costcode'] . '</td><td>' . '<a name="tasklog' . $row['task_log_id'] . '"></a>';
+	$s .= '<td width="100">' . $row['task_log_costcode'] .' ('.$billingCategory[$row['billingcode_category']]. ')</td>';
+    $s .= '<td>' . '<a name="tasklog' . $row['task_log_id'] . '"></a>';
 
 	// dylan_cuthbert: auto-transation system in-progress, leave these lines
 	$transbrk = "\n[translation]\n";
