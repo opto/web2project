@@ -89,7 +89,7 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
         <th width="10px" align="center"><?php echo $AppUI->_('Finish Date'); ?></th>
         <th width="10px" align="center"><?php echo $AppUI->_('Target Budget'); ?></th>
         <th width="10px" align="center"><?php echo $AppUI->_('Actual Cost'); ?></th>
-        <th width="10px" align="center"><?php echo $AppUI->_('Diff'); ?></th>
+        <th width="10px" align="center"><?php echo $AppUI->_('Difference'); ?></th>
     </tr>
     <?php
     //TODO: rotate the headers by 90 degrees?
@@ -107,8 +107,6 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
 //            $pstart = new CDate($project->project_start_date);
 //            $pend = intval($criticalTasks[0]['task_end_date']) ? new CDate($criticalTasks[0]['task_end_date']) : new CDate();
 //            $workingDays = $pstart->workingDaysInSpan($pend);
-//            $bcode = new bcode();
-//            $results = $bcode->calculateProjectCost($projectItem['project_id']);
             ?><tr>
                 <td width="10" align="right" style="border: outset #eeeeee 1px;background-color:#<?php echo $project->project_color_identifier; ?>">
                     <font color="<?php echo bestColor($project->project_color_identifier); ?>"><?php echo sprintf('%.1f%%', $project->project_percent_complete); ?></font>
@@ -121,10 +119,10 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
                         ?>
                     </a>
                 </td>
-                <td align="center">
+                <td align="center" nowrap="nowrap">
                     <?php
-                    $contactName = htmlentities(CContact::getContactByUserid($project->project_owner));
-                    echo $contactName;
+                        $contactName = htmlentities(CContact::getContactByUserid($project->project_owner));
+                        echo $contactName;
                     ?>
                 </td>
                 <td><?php echo $AppUI->formatTZAwareTime($project->project_start_date, $df); ?></td>
@@ -142,13 +140,14 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
                 </td>
                 <td align="center">
                     <?php
-                        $actualCost = $w2Pconfig['currency_symbol'].((int) $costs['totalCosts']);
+                        $totalCost = $costs['totalCosts'];
+                        $actualCost = $w2Pconfig['currency_symbol'].((int) $totalCost);
                         echo $actualCost;
                     ?>
                 </td>
                 <td align="center">
                     <?php
-                    $diff_total = (int) ($totalBudget - $costs['totalCosts']);
+                    $diff_total = (int) ($totalBudget - $totalCost);
                     echo ($diff_total < 0) ? '<span style="color: red;">' : '';
                     echo $w2Pconfig['currency_symbol'].$diff_total;
                     echo ($diff_total < 0) ? '</span>' : '';
@@ -159,7 +158,8 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
                 '  '.$projectName, $contactName,
                 $AppUI->formatTZAwareTime($project->project_start_date, $df),
                 $AppUI->formatTZAwareTime($criticalTasks[0]['task_end_date'], $df),
-                $targetCost, $actualCost, $w2Pconfig['currency_symbol'].$diff_total);
+                $targetBudget, $actualCost,
+                $w2Pconfig['currency_symbol'].$diff_total);
         }
 
         if ($log_pdf) {
@@ -182,25 +182,19 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
                 '  '.$AppUI->_('Project Name', UI_OUTPUT_JS), $AppUI->_('Project Owner', UI_OUTPUT_JS),
                 $AppUI->_('Start Date', UI_OUTPUT_JS), $AppUI->_('Finish Date', UI_OUTPUT_JS),
                 $AppUI->_('Target Budget', UI_OUTPUT_JS), $AppUI->_('Actual Cost', UI_OUTPUT_JS),
-                $AppUI->_('Diff', UI_OUTPUT_JS), 
-                $AppUI->_('Daily Budget', UI_OUTPUT_JS), $AppUI->_('Daily Cost', UI_OUTPUT_JS),
-                $AppUI->_('Diff', UI_OUTPUT_JS), $AppUI->_('% Diff', UI_OUTPUT_JS));
+                $AppUI->_('Difference', UI_OUTPUT_JS));
 
             $options = array('showLines' => 1, 'fontSize' => 9, 'rowGap' => 1,
                 'colGap' => 1, 'xPos' => 50, 'xOrientation' => 'right', 'width' => '500',
                 'cols' => array(
-                            0 => array('justification' => 'center', 'width' => 40),
+                            0 => array('justification' => 'center', 'width' => 45),
                             1 => array('justification' => 'left', 'width' => 175),
                             2 => array('justification' => 'center', 'width' => 75),
-                            3 => array('justification' => 'center', 'width' => 60),
-                            4 => array('justification' => 'center', 'width' => 60),
-                            5 => array('justification' => 'center', 'width' => 50),
-                            6 => array('justification' => 'center', 'width' => 50),
-                            7 => array('justification' => 'center', 'width' => 50),
-                            8 => array('justification' => 'center', 'width' => 45),
-                            9 => array('justification' => 'center', 'width' => 45),
-                            10 => array('justification' => 'center', 'width' => 45),
-                            11 => array('justification' => 'center', 'width' => 35),
+                            3 => array('justification' => 'center', 'width' => 65),
+                            4 => array('justification' => 'center', 'width' => 65),
+                            5 => array('justification' => 'center', 'width' => 65),
+                            6 => array('justification' => 'center', 'width' => 65),
+                            7 => array('justification' => 'center', 'width' => 65),
                     ));
 
             $pdf->ezTable($pdfdata, $pdfheaders, $title, $options);

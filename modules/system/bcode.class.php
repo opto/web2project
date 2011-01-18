@@ -88,7 +88,7 @@ class bcode extends w2p_Core_BaseObject {
     public function calculateTaskCost($task_id, $start_date = null, $end_date = null) {
         $q = new w2p_Database_Query();
         $q->addTable('task_log', 'tl');
-        $q->addQuery('task_log_hours, billingcode_value');
+        $q->addQuery('task_log_hours, billingcode_value, billingcode_category');
         $q->leftJoin('billingcode', 'bc', 'bc.billingcode_id = tl.task_log_costcode');
         $q->addWhere('tl.task_log_task = '. (int) $task_id);
         if ($start && $end) {
@@ -99,22 +99,25 @@ class bcode extends w2p_Core_BaseObject {
 
         $actualCost = 0;
         $uncountedHours = 0;
+        $results = array();
 
         foreach ($logs as $tasklog) {
             if (is_null($tasklog['billingcode_value'])) {
-                $uncountedHours += $tasklog['task_log_hours'];
+                $results['uncountedHours'] += $tasklog['task_log_hours'];
             } else {
-                $actualCost += $tasklog['task_log_hours'] * $tasklog['billingcode_value'];
+                $category = ('' == ($tasklog['billingcode_category'])) ? 'otherCosts' : $tasklog['billingcode_category'];
+                $results[$category] += $tasklog['task_log_hours'] * $tasklog['billingcode_value'];
+                $results['totalCosts'] += $tasklog['task_log_hours'] * $tasklog['billingcode_value'];
             }
         }
 
-        return array('actualCost' => $actualCost, 'uncountedHours' => $uncountedHours);
+        return $results;
     }
 
     public function calculateProjectCost($project_id, $start_date = null, $end_date = null) {
         $q = new w2p_Database_Query();
-        $q->addQuery('tl.*, bc.*');
         $q->addTable('task_log', 'tl');
+        $q->addQuery('task_log_hours, billingcode_value, billingcode_category');
         $q->addJoin('tasks', 't', 't.task_id = tl.task_log_task');
         $q->leftJoin('billingcode', 'bc', 'bc.billingcode_id = tl.task_log_costcode');
         $q->addWhere('t.task_project = '. (int) $project_id);
