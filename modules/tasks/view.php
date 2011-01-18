@@ -223,7 +223,7 @@ function delIt() {
                             $results = $bcode->calculateTaskCost($task_id);
 
                             echo $w2Pconfig['currency_symbol'].'&nbsp;';
-                            echo formatCurrency($results['actualCost'], $AppUI->getPref('CURRENCYFORM'));
+                            echo formatCurrency($results['totalCosts'], $AppUI->getPref('CURRENCYFORM'));
 
                             if ($results['uncountedHours'] > 0) {
                                 echo '<span style="float:right; font-style: italic;">'.$results['uncountedHours'].' hours without billing codes</span>';

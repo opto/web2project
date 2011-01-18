@@ -220,10 +220,10 @@ echo '<font color="' . bestColor($project->project_color_identifier) . '"><stron
                         <table cellspacing="1" cellpadding="2" border="0" width="100%">
                             <tr>
                                 <td class="hilite" align="center">
-                                    <?php echo $AppUI->_('Estimated Cost'); ?>:
+                                    <?php echo $AppUI->_('Target Budgets'); ?>:
                                 </td>
                                 <td class="hilite" align="center">
-                                    <?php echo $AppUI->_('Actual Cost'); ?>:
+                                    <?php echo $AppUI->_('Actual Costs'); ?>:
                                 </td>
                             </tr>
                             <tr>
