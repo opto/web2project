@@ -132,87 +132,10 @@ echo '<font color="' . bestColor($project->project_color_identifier) . '"><stron
 	</td>
 </tr>
 
-<tr>
-	<td width="50%" valign="top">
-		<strong><?php echo $AppUI->_('Details'); ?></strong>
-		<table cellspacing="1" cellpadding="2" border="0" width="100%">
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Company'); ?>:</td>
-			<td class="hilite" width="100%">
-				<?php if ($perms->checkModuleItem('companies', 'access', $project->project_company)) { ?>
-					<?php echo '<a href="?m=companies&a=view&company_id=' . $project->project_company . '">' . htmlspecialchars($project->company_name, ENT_QUOTES) . '</a>'; ?>
-				<?php } else { ?>
-	  			<?php echo htmlspecialchars($project->company_name, ENT_QUOTES); ?>
-				<?php } ?>
-			</td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Project Location'); ?>:</td>
-			<td class="hilite"><?php echo $project->project_location; ?></td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Short Name'); ?>:</td>
-			<td class="hilite"><?php echo htmlspecialchars($project->project_short_name, ENT_QUOTES); ?></td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Start Date'); ?>:</td>
-			<td class="hilite"><?php echo $start_date ? $start_date->format($df) : '-'; ?></td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Target End Date'); ?>:</td>
-			<td class="hilite"><?php echo $end_date ? $end_date->format($df) : '-'; ?></td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Actual End Date'); ?>:</td>
-			<td class="hilite">
-				<?php
-					if ($project_id > 0 && $project->project_last_task > 0) {
-						echo $actual_end_date ? '<a href="?m=tasks&a=view&task_id='. $project->project_last_task . '">' : '';
-						echo $actual_end_date ? '<span ' . $style . '>' . $actual_end_date->format($df) . '</span>' : '-';
-						echo $actual_end_date ? '</a>' : '';
-					} else {
-						echo $AppUI->_('Dynamically calculated');
-					}
-				?>
-			</td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('URL'); ?>:</td>
-            <td class="hilite"><?php echo w2p_url($project->project_url); ?></td>
-		</tr>
-		<tr>
-			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Staging URL'); ?>:</td>
-            <td class="hilite"><?php echo w2p_url($project->project_demo_url); ?></td>
-		</tr>
-        <tr>
-            <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Type'); ?>:</td>
-            <td class="hilite" width="100%"><?php echo $AppUI->_($ptype[$project->project_type]); ?></td>
-        </tr>
-		<tr>
-			<td colspan="2">
-				<?php
-					$custom_fields = new w2p_Core_CustomFields($m, $a, $project->project_id, 'view');
-					$custom_fields->printHTML();
-				?>
-			</td>
-		</tr>
-		<tr>
-			<td colspan="2">
-			<strong><?php echo $AppUI->_('Description'); ?></strong><br />
-			<table cellspacing="0" cellpadding="2" border="0" width="100%">
-			<tr>
-				<td class="hilite">
-					<?php echo w2p_textarea($project->project_description); ?>&nbsp;
-				</td>
-			</tr>
-			</table>
-			</td>
-		</tr>
-		</table>
-	</td>
-	<td width="50%" rowspan="1" valign="top">
-		<strong><?php echo $AppUI->_('Summary'); ?></strong><br />
-		<table cellspacing="1" cellpadding="2" border="0" width="100%">
+    <tr>
+        <td width="50%" valign="top">
+            <strong><?php echo $AppUI->_('Details'); ?></strong>
+            <table cellspacing="1" cellpadding="2" border="0" width="100%">
             <tr>
                 <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Company'); ?>:</td>
                 <td class="hilite" width="100%">
@@ -243,8 +166,8 @@ echo '<font color="' . bestColor($project->project_color_identifier) . '"><stron
                 <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Actual End Date'); ?>:</td>
                 <td class="hilite">
                     <?php
-                        if ($project_id > 0) {
-                            echo $actual_end_date ? '<a href="?m=tasks&a=view&task_id=' . $criticalTasks[0]['task_id'] . '">' : '';
+                        if ($project_id > 0 && $project->project_last_task > 0) {
+                            echo $actual_end_date ? '<a href="?m=tasks&a=view&task_id='. $project->project_last_task . '">' : '';
                             echo $actual_end_date ? '<span ' . $style . '>' . $actual_end_date->format($df) . '</span>' : '-';
                             echo $actual_end_date ? '</a>' : '';
                         } else {

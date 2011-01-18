@@ -146,6 +146,7 @@ class CProject extends w2p_Core_BaseObject {
 		$this->company_name = '';
 		$this->user_name = '';
 		$q->loadObject($this);
+        $this->budget = $this->getBudget();
 	}
 
 	public function delete(w2p_Core_CAppUI $AppUI = null) {
@@ -472,6 +473,34 @@ class CProject extends w2p_Core_BaseObject {
 
 		return $q->loadList();
 	}
+
+    public function getBudget() {
+        $q = new DBQuery;
+        $q->addQuery('budget_category, budget_amount');
+        $q->addTable('project_budgets');
+        $q->addWhere('budget_project =' . (int) $this->project_id);
+
+        return $q->loadHashList('budget_category');
+    }
+
+    public function storeBudget(array $budgets) {
+        $q = new DBQuery;
+        $q->setDelete('project_budgets');
+        $q->addWhere('budget_project =' . (int) $this->project_id);
+        $q->exec();
+
+        $q->clear();
+        foreach ($budgets as $category => $amount) {
+            $q->addTable('project_budgets');
+            $q->addInsert('budget_project', $this->project_id);
+            $q->addInsert('budget_category', $category);
+            $q->addInsert('budget_amount', $amount);
+            $q->exec();
+            $q->clear();
+        }
+
+        return true;
+    }
 
 	public function store(w2p_Core_CAppUI $AppUI = null) {
         global $AppUI;
