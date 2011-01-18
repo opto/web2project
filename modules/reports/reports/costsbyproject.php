@@ -26,6 +26,7 @@ if (!$log_start_date) {
 	$start_date->subtractSpan(new Date_Span('14,0,0,0'));
 }
 $end_date->setTime(23, 59, 59);
+$billingCategory = w2PgetSysVal('BudgetCategory');
 
 $company = new CCompany();
 $companies = $company->getAllowedRecords($AppUI->user_id, 'company_id,company_name', 'company_name');
@@ -89,10 +90,6 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
         <th width="10px" align="center"><?php echo $AppUI->_('Target Budget'); ?></th>
         <th width="10px" align="center"><?php echo $AppUI->_('Actual Cost'); ?></th>
         <th width="10px" align="center"><?php echo $AppUI->_('Diff'); ?></th>
-        <th width="10px" align="center"><?php echo $AppUI->_('Daily Budget'); ?></th>
-        <th width="10px" align="center"><?php echo $AppUI->_('Daily Cost'); ?></th>
-        <th width="10px" align="center"><?php echo $AppUI->_('Diff'); ?></th>
-        <th width="20px" align="center"><?php echo $AppUI->_('% Diff'); ?></th>
     </tr>
     <?php
     //TODO: rotate the headers by 90 degrees?
@@ -103,13 +100,15 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
 
     if (count($projectList)) {
         foreach ($projectList as $projectItem) {
-            $project->load($projectItem['project_id']);
+            $project->loadFull($AppUI, $projectItem['project_id']);
             $criticalTasks = $project->getCriticalTasks($projectItem['project_id']);
 
             $costs = $bcode->calculateProjectCost($projectItem['project_id'], $start_date, $end_date);
-            $pstart = new CDate($project->project_start_date);
-            $pend = intval($criticalTasks[0]['task_end_date']) ? new CDate($criticalTasks[0]['task_end_date']) : new CDate();
-            $workingDays = $pstart->workingDaysInSpan($pend);
+//            $pstart = new CDate($project->project_start_date);
+//            $pend = intval($criticalTasks[0]['task_end_date']) ? new CDate($criticalTasks[0]['task_end_date']) : new CDate();
+//            $workingDays = $pstart->workingDaysInSpan($pend);
+//            $bcode = new bcode();
+//            $results = $bcode->calculateProjectCost($projectItem['project_id']);
             ?><tr>
                 <td width="10" align="right" style="border: outset #eeeeee 1px;background-color:#<?php echo $project->project_color_identifier; ?>">
                     <font color="<?php echo bestColor($project->project_color_identifier); ?>"><?php echo sprintf('%.1f%%', $project->project_percent_complete); ?></font>
@@ -132,58 +131,27 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
                 <td><?php echo $AppUI->formatTZAwareTime($criticalTasks[0]['task_end_date'], $df); ?></td>
                 <td align="center">
                     <?php
-                        $targetCost = $w2Pconfig['currency_symbol'].((int) $project->project_target_budget);
-                        echo $targetCost;
+                        $totalBudget = 0;
+                        foreach ($billingCategory as $id => $category) {
+                            $totalBudget += $project->budget[$id]['budget_amount'];
+                        }
+
+                        $targetBudget = $w2Pconfig['currency_symbol'].((int) $totalBudget);
+                        echo $targetBudget;
                     ?>
                 </td>
                 <td align="center">
                     <?php
-                        $actualCost = $w2Pconfig['currency_symbol'].((int) $costs['actualCost']);
+                        $actualCost = $w2Pconfig['currency_symbol'].((int) $costs['totalCosts']);
                         echo $actualCost;
                     ?>
                 </td>
                 <td align="center">
                     <?php
-                    $diff_total = (int) ($project->project_target_budget - $costs['actualCost']);
+                    $diff_total = (int) ($totalBudget - $costs['totalCosts']);
                     echo ($diff_total < 0) ? '<span style="color: red;">' : '';
                     echo $w2Pconfig['currency_symbol'].$diff_total;
                     echo ($diff_total < 0) ? '</span>' : '';
-                    ?>
-                </td>
-                <td align="center">
-                    <?php
-                    $dailyBudget = '-';
-                    if ($workingDays > 0) {
-                        $dailyBudget = (int) ($project->project_target_budget/$workingDays);
-                    }
-                    echo $w2Pconfig['currency_symbol'].$dailyBudget;
-                    ?>
-                </td>
-                <td align="center">
-                    <?php
-                    $dailyCosts = '-';
-                    if ($workingDays > 0) {
-                        $dailyCosts = (int) ($costs['actualCost']/$workingDays);
-                    }
-                    echo $w2Pconfig['currency_symbol'].$dailyCosts;
-                    ?>
-                </td>
-                <td align="center">
-                    <?php
-                    $diff_daily = (int) ($dailyBudget - $dailyCosts);
-                    echo ($diff_daily < 0) ? '<span style="color: red;">' : '';
-                    echo $w2Pconfig['currency_symbol'].$diff_daily;
-                    echo ($diff_daily < 0) ? '</span>' : '';
-                    ?>
-                </td>
-                <td align="center">
-                    <?php
-                    $perDiff_total = '-';
-                    if ($project->project_target_budget > 0) {
-                        $perDiff_total = 100 * $costs['actualCost'] / $project->project_target_budget;
-                        $perDiff_total = (int) $perDiff_total.'%';
-                    }
-                    echo $perDiff_total;
                     ?>
                 </td>
             </tr><?php
@@ -191,14 +159,11 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
                 '  '.$projectName, $contactName,
                 $AppUI->formatTZAwareTime($project->project_start_date, $df),
                 $AppUI->formatTZAwareTime($criticalTasks[0]['task_end_date'], $df),
-                $targetCost, $actualCost, $w2Pconfig['currency_symbol'].$diff_total,
-                $w2Pconfig['currency_symbol'].$dailyBudget,
-                $w2Pconfig['currency_symbol'].$dailyCosts,
-                $w2Pconfig['currency_symbol'].$diff_daily, $perDiff_total);
+                $targetCost, $actualCost, $w2Pconfig['currency_symbol'].$diff_total);
         }
+
         if ($log_pdf) {
             // make the PDF file
-
             $font_dir = W2P_BASE_DIR . '/lib/ezpdf/fonts';
             $temp_dir = W2P_BASE_DIR . '/files/temp';
 

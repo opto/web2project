@@ -267,7 +267,6 @@ echo '<font color="' . bestColor($project->project_color_identifier) . '"><stron
                                         <?php
                                         $bcode = new bcode();
                                         $results = $bcode->calculateProjectCost($project_id);
-                                        $totalBudget = 0;
                                         foreach ($billingCategory as $id => $category) {
                                             ?>
                                             <tr>
