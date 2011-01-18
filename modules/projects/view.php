@@ -31,6 +31,7 @@ $canDelete = $project->canDelete($msg, $project_id);
 // get ProjectPriority from sysvals
 $projectPriority = w2PgetSysVal('ProjectPriority');
 $projectPriorityColor = w2PgetSysVal('ProjectPriorityColor');
+$billingCategory = w2PgetSysVal('BudgetCategory');
 
 // load the record data
 $project->loadFull($AppUI, $project_id);
@@ -214,39 +215,102 @@ echo '<font color="' . bestColor($project->project_color_identifier) . '"><stron
             <strong><?php echo $AppUI->_('Summary'); ?></strong><br />
             <table cellspacing="1" cellpadding="2" border="0" width="100%">
                 <tr>
-                    <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Target Budget'); ?>:</td>
-                    <td class="hilite">
-                        <?php
-                            echo $w2Pconfig['currency_symbol'].'&nbsp;';
-                            echo formatCurrency($project->project_target_budget, $AppUI->getPref('CURRENCYFORM'));
-
-                            $end_date = !is_null($end_date) ? $end_date : new CDate($actual_end_date);
-                            $workingDays = $start_date->workingDaysInSpan($end_date);
-                            echo '<span style="float:right; font-style: italic;">';
-                            echo $w2Pconfig['currency_symbol'].'&nbsp;';
-                            echo formatCurrency($project->project_target_budget/$workingDays, $AppUI->getPref('CURRENCYFORM'));
-                            echo ' average daily budget</span>';
-                        ?>
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Actual Cost'); ?>:</td>
-                    <td class="hilite">
-                        <?php
-                            $bcode = new bcode();
-                            $results = $bcode->calculateProjectCost($project_id);
-
-                            echo '<span style="float:right; font-style: italic;">';
-                            echo $w2Pconfig['currency_symbol'].'&nbsp;';
-                            echo formatCurrency($results['actualCost']/$workingDays, $AppUI->getPref('CURRENCYFORM'));
-                            echo ' average daily costs</span><br />';
-
-                            echo $w2Pconfig['currency_symbol'].'&nbsp;';
-                            echo formatCurrency($results['actualCost'], $AppUI->getPref('CURRENCYFORM'));
-                            if ($results['uncountedHours'] > 0) {
-                                echo '<span style="float:right; font-style: italic;">'.$results['uncountedHours'].' hours without billing codes</span>';
-                            }
-                        ?>
+                    <td align="center" nowrap="nowrap"><?php echo $AppUI->_('Finances'); ?>:</td>
+                    <td align="center" nowrap="nowrap">
+                        <table cellspacing="1" cellpadding="2" border="0" width="100%">
+                            <tr>
+                                <td class="hilite" align="center">
+                                    <?php echo $AppUI->_('Estimated Cost'); ?>:
+                                </td>
+                                <td class="hilite" align="center">
+                                    <?php echo $AppUI->_('Actual Cost'); ?>:
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="hilite">
+                                    <table cellspacing="1" cellpadding="2" border="0" width="100%">
+                                        <?php
+                                        $totalBudget = 0;
+                                        foreach ($billingCategory as $id => $category) {
+                                            $amount = $project->budget[$id]['budget_amount'];
+                                            $totalBudget += $amount;
+                                            ?>
+                                            <tr>
+                                                <td align="right" nowrap="nowrap">
+                                                    <?php echo $AppUI->_($category); ?>
+                                                </td>
+                                                <td nowrap="nowrap" style="text-align: left; padding-left: 40px;">
+                                                    <?php echo $w2Pconfig['currency_symbol'] ?>&nbsp;
+                                                    <?php echo formatCurrency($amount, $AppUI->getPref('CURRENCYFORM')); ?>
+                                                </td>
+                                            </tr>
+                                            <?php
+                                        }
+                                        ?>
+                                        <tr>
+                                            <td align="right" nowrap="nowrap">&nbsp;</td>
+                                            <td align="right" nowrap="nowrap">&nbsp;</td>
+                                        </tr>
+                                        <tr>
+                                            <td align="right" nowrap="nowrap">
+                                                <?php echo $AppUI->_('Total Budget'); ?>
+                                            </td>
+                                            <td nowrap="nowrap" style="text-align: left; padding-left: 40px;">
+                                                <?php echo $w2Pconfig['currency_symbol'] ?>&nbsp;
+                                                <?php echo formatCurrency($totalBudget, $AppUI->getPref('CURRENCYFORM')); ?>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td class="hilite">
+                                    <table cellspacing="1" cellpadding="2" border="0" width="100%">
+                                        <?php
+                                        $bcode = new bcode();
+                                        $results = $bcode->calculateProjectCost($project_id);
+                                        $totalBudget = 0;
+                                        foreach ($billingCategory as $id => $category) {
+                                            ?>
+                                            <tr>
+                                                <td align="right" nowrap="nowrap">
+                                                    <?php echo $AppUI->_($category); ?>
+                                                </td>
+                                                <td nowrap="nowrap" style="text-align: left; padding-left: 40px;">
+                                                    <?php echo $w2Pconfig['currency_symbol'] ?>&nbsp;
+                                                    <?php echo formatCurrency($results[$id], $AppUI->getPref('CURRENCYFORM')); ?>
+                                                </td>
+                                            </tr>
+                                            <?php
+                                        }
+                                        ?>
+                                        <tr>
+                                            <td align="right" nowrap="nowrap">
+                                                <?php echo $AppUI->_('Unidentified Costs'); ?>
+                                            </td>
+                                            <td nowrap="nowrap" style="text-align: left; padding-left: 40px;">
+                                                <?php echo $w2Pconfig['currency_symbol'] ?>&nbsp;
+                                                <?php echo formatCurrency($results['otherCosts'], $AppUI->getPref('CURRENCYFORM')); ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td align="right" nowrap="nowrap">
+                                                <?php echo $AppUI->_('Total Cost'); ?>
+                                            </td>
+                                            <td nowrap="nowrap" style="text-align: left; padding-left: 40px;">
+                                                <?php echo $w2Pconfig['currency_symbol'] ?>&nbsp;
+                                                <?php echo formatCurrency($results['totalCosts'], $AppUI->getPref('CURRENCYFORM')); ?>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            <?php if ($results['uncountedHours']) { ?>
+                            <tr>
+                                <td colspan="2" align="center" class="hilite">
+                                    <?php echo '<span style="float:right; font-style: italic;">'.$results['uncountedHours'].' hours without billing codes</span>'; ?>
+                                </td>
+                            </tr>
+                            <?php } ?>
+                        </table>
                     </td>
                 </tr>
                 <tr>
