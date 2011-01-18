@@ -54,9 +54,9 @@ function parseDate(val) {
     dateFirst =new Array();
 	var checkList=new Array('generalFormats',preferEuro?'dateFirst':'monthFirst',preferEuro?'monthFirst':'dateFirst');
 	var d=null;
-	for (var i=0, i_cmp=checkList.length; i &lt; i_cmp; i++) {
+	for (var i=0, i_cmp=checkList.length; i < i_cmp; i++) {
 		var l=window[checkList[i]];
-		for (var j=0, j_cmp=l.length; j &lt; j_cmp; j++) {
+		for (var j=0, j_cmp=l.length; j < j_cmp; j++) {
 			d=getDateFromFormat(val,l[j]);
 			if (d!=0) { return new Date(d); }
         }
