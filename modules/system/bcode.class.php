@@ -91,10 +91,11 @@ class bcode extends w2p_Core_BaseObject {
         $q->addQuery('task_log_hours, billingcode_value, billingcode_category');
         $q->leftJoin('billingcode', 'bc', 'bc.billingcode_id = tl.task_log_costcode');
         $q->addWhere('tl.task_log_task = '. (int) $task_id);
-        if ($start && $end) {
+        if ($start_date && $end_date) {
             $q->addWhere("tl.task_log_date >= '$start_date'");
             $q->addWhere("tl.task_log_date <= '$end_date'");
         }
+
         $logs = $q->loadList();
 
         $actualCost = 0;
@@ -121,7 +122,7 @@ class bcode extends w2p_Core_BaseObject {
         $q->addJoin('tasks', 't', 't.task_id = tl.task_log_task');
         $q->leftJoin('billingcode', 'bc', 'bc.billingcode_id = tl.task_log_costcode');
         $q->addWhere('t.task_project = '. (int) $project_id);
-        if ($start && $end) {
+        if ($start_date && $end_date) {
             $q->addWhere("tl.task_log_date >= '$start_date'");
             $q->addWhere("tl.task_log_date <= '$end_date'");
         }

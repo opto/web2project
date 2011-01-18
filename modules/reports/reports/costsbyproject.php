@@ -16,8 +16,8 @@ $active_projects = (isset($_POST['company_id'])) ? $active_projects : 1;
 $do_report = w2PgetParam($_POST, 'do_report', 0);
 $log_pdf = w2PgetParam($_POST, 'log_pdf', 0);
 
-$log_start_date = w2PgetParam($_POST, 'log_start_date', 0);
-$log_end_date = w2PgetParam($_POST, 'log_end_date', 0);
+$log_start_date = w2PgetParam($_POST, 'log_start_date', '2008-01-01');
+$log_end_date   = w2PgetParam($_POST, 'log_end_date',   '2014-01-01');
 // create Date objects from the datetime fields
 $start_date = intval($log_start_date) ? new CDate($log_start_date) : new CDate();
 $end_date = intval($log_end_date) ? new CDate($log_end_date) : new CDate();
@@ -32,7 +32,25 @@ $company = new CCompany();
 $companies = $company->getAllowedRecords($AppUI->user_id, 'company_id,company_name', 'company_name');
 $companies = arrayMerge(array('0' => 'All Companies'), $companies);
 ?>
-
+<script language="javascript" type="text/javascript">
+    function setDate( frm_name, f_date ) {
+        fld_date = eval( 'document.' + frm_name + '.' + f_date );
+        fld_real_date = eval( 'document.' + frm_name + '.' + 'log_' + f_date );
+        if (fld_date.value.length > 0) {
+            if ((parseDate(fld_date.value))==null) {
+                alert('The Date/Time you typed does not match your prefered format, please retype.');
+                fld_real_date.value = '';
+                fld_date.style.backgroundColor = 'red';
+            } else {
+                fld_real_date.value = formatDate(parseDate(fld_date.value), 'yyyyMMdd');
+                fld_date.value = formatDate(parseDate(fld_date.value), '<?php echo $cal_sdf ?>');
+                fld_date.style.backgroundColor = '';
+            }
+        } else {
+            fld_real_date.value = '';
+        }
+    }
+</script>
 <form name="editFrm" action="index.php?m=reports" method="post" accept-charset="utf-8">
     <input type="hidden" name="company_id" value="<?php echo $company_id; ?>" />
     <input type="hidden" name="report_type" value="<?php echo $report_type; ?>" />
@@ -103,10 +121,17 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
             $project->loadFull($AppUI, $projectItem['project_id']);
             $criticalTasks = $project->getCriticalTasks($projectItem['project_id']);
 
-            $costs = $bcode->calculateProjectCost($projectItem['project_id'], $start_date, $end_date);
-//            $pstart = new CDate($project->project_start_date);
-//            $pend = intval($criticalTasks[0]['task_end_date']) ? new CDate($criticalTasks[0]['task_end_date']) : new CDate();
-//            $workingDays = $pstart->workingDaysInSpan($pend);
+            $costs = $bcode->calculateProjectCost($projectItem['project_id'],
+                    $start_date->format(FMT_DATETIME_MYSQL),
+                    $end_date->format(FMT_DATETIME_MYSQL));
+            $pstart = new CDate($project->project_start_date);
+            $pend = intval($criticalTasks[0]['task_end_date']) ? new CDate($criticalTasks[0]['task_end_date']) : new CDate();
+            $filterStart = $start_date;
+            $filterEnd = $end_date;
+            $workingDaysInSpans = $filterStart->findDaysInRangeOverlap($pstart, $pend, $filterStart, $filterEnd);
+            $workingDaysForProj = $pstart->workingDaysInSpan($pend);
+            $factor = $workingDaysInSpans/$workingDaysForProj;
+            $factor = ($factor > 1) ? 1 : $factor;
             ?><tr>
                 <td width="10" align="right" style="border: outset #eeeeee 1px;background-color:#<?php echo $project->project_color_identifier; ?>">
                     <font color="<?php echo bestColor($project->project_color_identifier); ?>"><?php echo sprintf('%.1f%%', $project->project_percent_complete); ?></font>
@@ -134,7 +159,7 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
                             $totalBudget += $project->budget[$id]['budget_amount'];
                         }
 
-                        $targetBudget = $w2Pconfig['currency_symbol'].((int) $totalBudget);
+                        $targetBudget = $w2Pconfig['currency_symbol'].(int) ($totalBudget*$factor);
                         echo $targetBudget;
                     ?>
                 </td>
@@ -147,7 +172,7 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
                 </td>
                 <td align="center">
                     <?php
-                    $diff_total = (int) ($totalBudget - $totalCost);
+                    $diff_total = (int) ($totalBudget*$factor - $totalCost);
                     echo ($diff_total < 0) ? '<span style="color: red;">' : '';
                     echo $w2Pconfig['currency_symbol'].$diff_total;
                     echo ($diff_total < 0) ? '</span>' : '';

@@ -2,17 +2,18 @@
 if (!defined('W2P_BASE_DIR')) {
 	die('You should not access this file directly.');
 }
+
 global $AppUI, $cal_sdf;
 $AppUI->loadCalendarJS();
-
+//TODO: block execution unless I tell it to
 /**
  * Generates a report of the task logs for given dates
  */
 $do_report = w2PgetParam($_POST, 'do_report', 0);
 $log_pdf = w2PgetParam($_POST, 'log_pdf', 0);
 
-$log_start_date = w2PgetParam($_POST, 'log_start_date', 0);
-$log_end_date = w2PgetParam($_POST, 'log_end_date', 0);
+$log_start_date = w2PgetParam($_POST, 'log_start_date', '2008-01-01');
+$log_end_date   = w2PgetParam($_POST, 'log_end_date',   '2014-01-01');
 // create Date objects from the datetime fields
 $start_date = intval($log_start_date) ? new CDate($log_start_date) : new CDate();
 $end_date = intval($log_end_date) ? new CDate($log_end_date) : new CDate();
@@ -22,26 +23,25 @@ if (!$log_start_date) {
 }
 $end_date->setTime(23, 59, 59);
 $billingCategory = w2PgetSysVal('BudgetCategory');
-
 ?>
 <script language="javascript" type="text/javascript">
-function setDate( frm_name, f_date ) {
-	fld_date = eval( 'document.' + frm_name + '.' + f_date );
-	fld_real_date = eval( 'document.' + frm_name + '.' + 'log_' + f_date );
-	if (fld_date.value.length>0) {
-      if ((parseDate(fld_date.value))==null) {
-            alert('The Date/Time you typed does not match your prefered format, please retype.');
-            fld_real_date.value = '';
-            fld_date.style.backgroundColor = 'red';
+    function setDate( frm_name, f_date ) {
+        fld_date = eval( 'document.' + frm_name + '.' + f_date );
+        fld_real_date = eval( 'document.' + frm_name + '.' + 'log_' + f_date );
+        if (fld_date.value.length > 0) {
+            if ((parseDate(fld_date.value))==null) {
+                alert('The Date/Time you typed does not match your prefered format, please retype.');
+                fld_real_date.value = '';
+                fld_date.style.backgroundColor = 'red';
+            } else {
+                fld_real_date.value = formatDate(parseDate(fld_date.value), 'yyyyMMdd');
+                fld_date.value = formatDate(parseDate(fld_date.value), '<?php echo $cal_sdf ?>');
+                fld_date.style.backgroundColor = '';
+            }
         } else {
-        	fld_real_date.value = formatDate(parseDate(fld_date.value), 'yyyyMMdd');
-        	fld_date.value = formatDate(parseDate(fld_date.value), '<?php echo $cal_sdf ?>');
-            fld_date.style.backgroundColor = '';
-  		}
-	} else {
-      	fld_real_date.value = '';
-	}
-}
+            fld_real_date.value = '';
+        }
+    }
 </script>
 <form name="editFrm" action="index.php?m=reports" method="post" accept-charset="utf-8">
     <input type="hidden" name="project_id" value="<?php echo $project_id; ?>" />
@@ -101,11 +101,17 @@ function setDate( frm_name, f_date ) {
     if (count($taskList)) {
         foreach ($taskList as $taskItem) {
             $task->loadFull($AppUI, $taskItem['task_id']);
-            $costs = $bcode->calculateTaskCost($taskItem['task_id'], $start_date, $end_date);
-
-//            $tstart = new CDate($task->task_start_date);
-//            $tend   = new CDate($task->task_end_date);
-//            $workingDays = $tstart->workingDaysInSpan($tend);
+            $costs = $bcode->calculateTaskCost($taskItem['task_id'],
+                    $start_date->format(FMT_DATETIME_MYSQL),
+                    $end_date->format(FMT_DATETIME_MYSQL));
+            $tstart = new CDate($task->task_start_date);
+            $tend   = new CDate($task->task_end_date);
+            $filterStart = $start_date;
+            $filterEnd = $end_date;
+            $workingDaysInSpans = $filterStart->findDaysInRangeOverlap($tstart, $tend, $filterStart, $filterEnd);
+            $workingDaysForTask = $tstart->workingDaysInSpan($tend);
+            $factor = $workingDaysInSpans/$workingDaysForTask;
+            $factor = ($factor > 1) ? 1 : $factor;
             ?><tr>
                 <td align="center"><?php echo sprintf('%.0f%%', $task->task_percent_complete); ?></td>
                 <td>
@@ -132,8 +138,8 @@ function setDate( frm_name, f_date ) {
                 <td><?php echo $AppUI->formatTZAwareTime($task->task_end_date, $df); ?></td>
                 <td align="center">
                     <?php
-                        $targetCost = $w2Pconfig['currency_symbol'].((int) $task->task_target_budget);
-                        echo $targetCost;
+                        $targetBudget = $w2Pconfig['currency_symbol'].(int) ($task->task_target_budget*$factor);
+                        echo $targetBudget;
                     ?>
                 </td>
                 <td align="center">
@@ -144,7 +150,7 @@ function setDate( frm_name, f_date ) {
                 </td>
                 <td align="center">
                     <?php
-                    $diff_total = (int) ($task->task_target_budget - $costs['totalCosts']);
+                    $diff_total = (int) ($task->task_target_budget*$factor - $costs['totalCosts']);
                     echo ($diff_total < 0) ? '<span style="color: red;">' : '';
                     echo $w2Pconfig['currency_symbol'].$diff_total;
                     echo ($diff_total < 0) ? '</span>' : '';
@@ -155,7 +161,7 @@ function setDate( frm_name, f_date ) {
                 '  '.$taskName, $contactName,
                 $AppUI->formatTZAwareTime($task->task_start_date, $df),
                 $AppUI->formatTZAwareTime($task->task_end_date, $df),
-                $targetCost, $actualCost, $w2Pconfig['currency_symbol'].$diff_total);
+                $targetBudget, $actualCost, $w2Pconfig['currency_symbol'].$diff_total);
         }
 
         if ($log_pdf) {
