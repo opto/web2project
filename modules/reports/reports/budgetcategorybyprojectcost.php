@@ -16,7 +16,7 @@ $active_projects = (isset($_POST['company_id'])) ? $active_projects : 1;
 $do_report = w2PgetParam($_POST, 'do_report', 0);
 $log_pdf = w2PgetParam($_POST, 'log_pdf', 0);
 
-$log_start_date = w2PgetParam($_POST, 'log_start_date', '2010-01-01');
+$log_start_date = w2PgetParam($_POST, 'log_start_date', '2008-01-01');
 $log_end_date   = w2PgetParam($_POST, 'log_end_date',   '2012-01-01');
 // create Date objects from the datetime fields
 $start_date = intval($log_start_date) ? new CDate($log_start_date) : new CDate();
@@ -104,6 +104,7 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
         <?php foreach ($billingCategory as $id => $category) { ?>
             <th colspan="2"><?php echo $AppUI->_($category); ?></th>
         <?php } ?>
+        <th><?php echo $AppUI->_('Unidentified'); ?></th>
         <th colspan="3"><?php echo $AppUI->_('Totals'); ?></th>
     </tr>
 	<tr>
@@ -113,6 +114,7 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
             <th><?php echo $AppUI->_('Budgetted'); ?></th>
             <th><?php echo $AppUI->_('Used'); ?></th>
         <?php } ?>
+        <th><?php echo $AppUI->_('Costs'); ?></th>
         <th width="10px" align="center"><?php echo $AppUI->_('Budgetted'); ?></th>
         <th width="10px" align="center"><?php echo $AppUI->_('Used'); ?></th>
         <th width="10px" align="center"><?php echo $AppUI->_('Remaining'); ?></th>
@@ -173,18 +175,22 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
                         $totalBudget[$id] += $budget * $factor;
                         $totalConsumed[$id] += $consumed;
                     }
+                    $consumed = (isset($costs['otherCosts'])) ? $costs['otherCosts'] : 0;
+                    $totalConsumed['otherCosts'] += $consumed;
+                    $pdfRow[] = $consumed;
+                    echo '<td align="center">'.$symbol.$consumed.'</td>';
                 ?>
                 <td align="center">
                     <?php
                     echo $symbol.round($projectBudget*$factor, 2);
                     $pdfRow[] = round($projectBudget*$factor, 2);
-                    //?>
+                    ?>
                 </td>
                 <td align="center">
                     <?php
                         $projectCost = $costs['totalCosts'];
                         $actualCost = $symbol.((int) $projectCost);
-                        echo (int) $projectCost;
+                        echo $actualCost;
                         $pdfRow[] = (int) $projectCost;
                     ?>
                 </td>
@@ -211,21 +217,24 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
             $sumBudget += $tmpBudget;
             $tmpConsumed = (isset($totalConsumed[$id]) ? $totalConsumed[$id] : 0);
             $sumConsumed += $tmpConsumed;
-            echo '<td align="center">'.$symbol.round($tmpBudget, 2).'</td>';
-            echo '<td align="center">'.$symbol.round($tmpConsumed, 2).'</td>';
-            $pdfRow[] = round($tmpBudget, 2);
-            $pdfRow[] = round($tmpConsumed, 2);
+            echo '<td align="center">'.$symbol.round($tmpBudget).'</td>';
+            echo '<td align="center">'.$symbol.round($tmpConsumed).'</td>';
+            $pdfRow[] = round($tmpBudget);
+            $pdfRow[] = round($tmpConsumed);
         }
-        echo '<td align="center">'.$symbol.round($sumBudget, 2).'</td>';
-        echo '<td align="center">'.$symbol.round($sumConsumed, 2).'</td>';
-        $pdfRow[] = round($sumBudget, 2);
-        $pdfRow[] = round($sumConsumed, 2);
+        $sumConsumed += $totalConsumed['otherCosts'];
+        echo '<td align="center">'.$symbol.$totalConsumed['otherCosts'].'</td>';
+        echo '<td align="center">'.$symbol.round($sumBudget).'</td>';
+        echo '<td align="center">'.$symbol.round($sumConsumed).'</td>';
+        $pdfRow[] = round($totalConsumed['otherCosts']);
+        $pdfRow[] = round($sumBudget);
+        $pdfRow[] = round($sumConsumed);
         echo '<td align="center">';
         $sumDiff = (int) ($sumBudget - $sumConsumed);
         echo ($sumDiff < 0) ? '<span style="color: red;">' : '';
         echo $symbol.$sumDiff;
         echo ($sumDiff < 0) ? '</span>' : '';
-        $pdfRow[] = round($sumDiff, 2);
+        $pdfRow[] = round($sumDiff);
         echo '</td>';
         echo '</tr>';
         $pdfdata[] = $pdfRow;
@@ -257,9 +266,11 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
                 $columns[] = array('justification' => 'center', 'width' => 45);
                 $columns[] = array('justification' => 'center', 'width' => 45);
             }
+            $pdfheaders[] = $AppUI->_("Unidentified\n(Used)", UI_OUTPUT_JS);
             $pdfheaders[] = $AppUI->_('Budgetted', UI_OUTPUT_JS);
             $pdfheaders[] = $AppUI->_('Used', UI_OUTPUT_JS);
             $pdfheaders[] = $AppUI->_('Remaining', UI_OUTPUT_JS);
+            $columns[] = array('justification' => 'center', 'width' => 50);
             $columns[] = array('justification' => 'center', 'width' => 45);
             $columns[] = array('justification' => 'center', 'width' => 45);
             $columns[] = array('justification' => 'center', 'width' => 50);
@@ -271,7 +282,7 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
             $pdf->ezTable($pdfdata, $pdfheaders, $title, $options);
 
             $w2pReport = new CReport();
-            echo '<tr><td colspan="15" align="center">';
+            echo '<tr><td colspan="20" align="center">';
             if ($fp = fopen($temp_dir . '/'.$w2pReport->getFilename().'.pdf', 'wb')) {
                 fwrite($fp, $pdf->ezOutput());
                 fclose($fp);
@@ -287,7 +298,7 @@ $companies = arrayMerge(array('0' => 'All Companies'), $companies);
             echo '</td></tr>';
         }
     } else {
-        echo '<tr><td colspan="15">'.$AppUI->_('There are no projects in this company').'</td></tr>';
+        echo '<tr><td colspan="20">'.$AppUI->_('There are no projects in this company').'</td></tr>';
     }
     ?>
 </table>
