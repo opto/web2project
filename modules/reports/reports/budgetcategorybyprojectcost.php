@@ -16,8 +16,8 @@ $active_projects = (isset($_POST['company_id'])) ? $active_projects : 1;
 $do_report = w2PgetParam($_POST, 'do_report', 0);
 $log_pdf = w2PgetParam($_POST, 'log_pdf', 0);
 
-$log_start_date = w2PgetParam($_POST, 'log_start_date', '2008-01-01');
-$log_end_date   = w2PgetParam($_POST, 'log_end_date',   '2014-01-01');
+$log_start_date = w2PgetParam($_POST, 'log_start_date', '2010-01-01');
+$log_end_date   = w2PgetParam($_POST, 'log_end_date',   '2012-01-01');
 // create Date objects from the datetime fields
 $start_date = intval($log_start_date) ? new CDate($log_start_date) : new CDate();
 $end_date = intval($log_end_date) ? new CDate($log_end_date) : new CDate();
