@@ -477,7 +477,7 @@ class CProject extends w2p_Core_BaseObject {
     public function getBudget() {
         $q = new DBQuery;
         $q->addQuery('budget_category, budget_amount');
-        $q->addTable('project_budgets');
+        $q->addTable('budgets_assigned');
         $q->addWhere('budget_project =' . (int) $this->project_id);
 
         return $q->loadHashList('budget_category');
@@ -485,13 +485,13 @@ class CProject extends w2p_Core_BaseObject {
 
     public function storeBudget(array $budgets) {
         $q = new DBQuery;
-        $q->setDelete('project_budgets');
+        $q->setDelete('budgets_assigned');
         $q->addWhere('budget_project =' . (int) $this->project_id);
         $q->exec();
 
         $q->clear();
         foreach ($budgets as $category => $amount) {
-            $q->addTable('project_budgets');
+            $q->addTable('budgets_assigned');
             $q->addInsert('budget_project', $this->project_id);
             $q->addInsert('budget_category', $category);
             $q->addInsert('budget_amount', $amount);

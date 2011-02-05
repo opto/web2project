@@ -9,7 +9,18 @@ INSERT INTO sysvals (sysval_key_id, sysval_title, sysval_value, sysval_value_id)
     (1, 'BudgetCategory', 'Permits', 'permits'),
     (1, 'BudgetCategory', 'Travel', 'travel');
 
-CREATE TABLE `project_budgets` (
+CREATE TABLE `budgets` (
+	`budget_id` INT( 10 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+	`budget_start_date` DATETIME NULL DEFAULT NULL ,
+	`budget_end_date` INT NULL DEFAULT NULL ,
+	`budget_amount` DECIMAL NOT NULL DEFAULT '0',
+	`budget_category` VARCHAR( 50 ) NOT NULL DEFAULT ''
+) ENGINE = InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;
+
+ALTER TABLE `budgets` ADD INDEX ( `budget_start_date` );
+ALTER TABLE `budgets` ADD INDEX ( `budget_end_date` );
+
+CREATE TABLE `budgets_assigned` (
     `budget_id` INT( 10 ) NOT NULL AUTO_INCREMENT ,
     `budget_project` INT( 10 ) NOT NULL ,
     `budget_task` INT( 10 ) NOT NULL ,
