@@ -11,7 +11,17 @@ if (!$obj->bind($_POST)) {
     $AppUI->redirect();
 }
 
-echo '<pre>';
-print_r($_POST);
-print_r($obj);
-die();
+$action = ($del) ? 'deleted' : 'stored';
+$result = ($del) ? $obj->delete($AppUI) : $obj->store($AppUI);
+
+if (is_array($result)) {
+    $AppUI->setMsg($result, UI_MSG_ERROR, true);
+    $AppUI->holdObject($obj);
+    $AppUI->redirect('m=system&a=budgeting');
+}
+if ($result) {
+    $AppUI->setMsg('Budgets '.$action, UI_MSG_OK, true);
+    $AppUI->redirect('m=system&a=budgeting');
+} else {
+    $AppUI->redirect('m=public&a=access_denied');
+}
