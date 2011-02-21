@@ -33,5 +33,3 @@ CREATE TABLE `budgets_assigned` (
     INDEX ( `budget_project` ),
     INDEX ( `budget_task` )
 ) ENGINE = InnoDB;
-
-
