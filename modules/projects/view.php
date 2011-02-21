@@ -239,7 +239,7 @@ echo '<font color="' . bestColor($project->project_color_identifier) . '"><stron
                                                 <td align="right" nowrap="nowrap">
                                                     <?php echo $AppUI->_($category); ?>
                                                 </td>
-                                                <td nowrap="nowrap" style="text-align: left; padding-left: 40px;">
+                                                <td nowrap="nowrap" style="text-align: right; padding-left: 40px;">
                                                     <?php echo $w2Pconfig['currency_symbol'] ?>&nbsp;
                                                     <?php echo formatCurrency($amount, $AppUI->getPref('CURRENCYFORM')); ?>
                                                 </td>
@@ -255,7 +255,7 @@ echo '<font color="' . bestColor($project->project_color_identifier) . '"><stron
                                             <td align="right" nowrap="nowrap">
                                                 <?php echo $AppUI->_('Total Budget'); ?>
                                             </td>
-                                            <td nowrap="nowrap" style="text-align: left; padding-left: 40px;">
+                                            <td nowrap="nowrap" style="text-align: right; padding-left: 40px;">
                                                 <?php echo $w2Pconfig['currency_symbol'] ?>&nbsp;
                                                 <?php echo formatCurrency($totalBudget, $AppUI->getPref('CURRENCYFORM')); ?>
                                             </td>
@@ -273,7 +273,7 @@ echo '<font color="' . bestColor($project->project_color_identifier) . '"><stron
                                                 <td align="right" nowrap="nowrap">
                                                     <?php echo $AppUI->_($category); ?>
                                                 </td>
-                                                <td nowrap="nowrap" style="text-align: left; padding-left: 40px;">
+                                                <td nowrap="nowrap" style="text-align: right; padding-left: 40px;">
                                                     <?php echo $w2Pconfig['currency_symbol'] ?>&nbsp;
                                                     <?php echo formatCurrency($results[$id], $AppUI->getPref('CURRENCYFORM')); ?>
                                                 </td>
@@ -285,7 +285,7 @@ echo '<font color="' . bestColor($project->project_color_identifier) . '"><stron
                                             <td align="right" nowrap="nowrap">
                                                 <?php echo $AppUI->_('Unidentified Costs'); ?>
                                             </td>
-                                            <td nowrap="nowrap" style="text-align: left; padding-left: 40px;">
+                                            <td nowrap="nowrap" style="text-align: right; padding-left: 40px;">
                                                 <?php echo $w2Pconfig['currency_symbol'] ?>&nbsp;
                                                 <?php echo formatCurrency($results['otherCosts'], $AppUI->getPref('CURRENCYFORM')); ?>
                                             </td>
@@ -294,7 +294,7 @@ echo '<font color="' . bestColor($project->project_color_identifier) . '"><stron
                                             <td align="right" nowrap="nowrap">
                                                 <?php echo $AppUI->_('Total Cost'); ?>
                                             </td>
-                                            <td nowrap="nowrap" style="text-align: left; padding-left: 40px;">
+                                            <td nowrap="nowrap" style="text-align: right; padding-left: 40px;">
                                                 <?php echo $w2Pconfig['currency_symbol'] ?>&nbsp;
                                                 <?php echo formatCurrency($results['totalCosts'], $AppUI->getPref('CURRENCYFORM')); ?>
                                             </td>
