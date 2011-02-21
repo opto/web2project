@@ -48,7 +48,36 @@ $perms = &$AppUI->acl();
                     </tr>
                     <tr>
                         <td><?php echo $AppUI->_('Task Parent'); ?>:</td>
-                        <td><?php echo $AppUI->_('Target Budget'); ?>:</td>
+                        <td rowspan="4">
+                            <table>
+                                <td></td>
+                                <td><?php echo $AppUI->_('Target Budgets'); ?>:</td>
+                                <?php
+                                $billingCategory = w2PgetSysVal('BudgetCategory');
+                                $totalBudget = 0;
+                                foreach ($billingCategory as $id => $category) {
+                                    $amount = $task->budget[$id]['budget_amount'];
+                                    $totalBudget += $amount;
+                                    ?>
+                                    <tr>
+                                        <td align="right" nowrap="nowrap">
+                                            <?php echo $AppUI->_($category); ?>
+                                        </td>
+                                        <td nowrap="nowrap" style="text-align: left; padding-left: 40px;">
+                                            <?php echo $w2Pconfig['currency_symbol'] ?> <input name="budget_<?php echo $id; ?>" id="budget_<?php echo $id; ?>" type="text" value="<?php echo $amount; ?>" size="10" class="text" />
+                                        </td>
+                                    </tr>
+                                    <?php
+                                }
+                                ?>
+                                <tr>
+                                    <td nowrap="nowrap"><?php echo $AppUI->_('Total Target Budget'); ?> <?php echo $w2Pconfig['currency_symbol'] ?></td>
+                                    <td align="right">
+                                        <?php echo $w2Pconfig['currency_symbol'] ?> <?php echo formatCurrency($totalBudget, $AppUI->getPref('CURRENCYFORM')); ?>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
                     </tr>
                 <tr>
                     <td>

@@ -316,6 +316,7 @@ class CTask extends w2p_Core_BaseObject {
 
         $q->loadObject($this, true, false);
         $this->task_hours_worked += 0;
+		$this->budget = $this->getBudget();
 	}
 
 	/*
@@ -530,6 +531,34 @@ class CTask extends w2p_Core_BaseObject {
 		$this->task_contacts = explode(',', $this->task_contacts);
 
 		return true;
+    }
+
+    public function getBudget() {
+        $q = new DBQuery;
+        $q->addQuery('budget_category, budget_amount');
+        $q->addTable('budgets_assigned');
+        $q->addWhere('budget_task =' . (int) $this->task_id);
+
+        return $q->loadHashList('budget_category');
+    }
+
+    public function storeBudget(array $budgets) {
+        $q = new DBQuery;
+        $q->setDelete('budgets_assigned');
+        $q->addWhere('budget_task =' . (int) $this->task_id);
+        $q->exec();
+
+        $q->clear();
+        foreach ($budgets as $category => $amount) {
+            $q->addTable('budgets_assigned');
+            $q->addInsert('budget_task', $this->task_id);
+            $q->addInsert('budget_category', $category);
+            $q->addInsert('budget_amount', $amount);
+            $q->exec();
+            $q->clear();
+        }
+
+        return true;
     }
 
 	/**
