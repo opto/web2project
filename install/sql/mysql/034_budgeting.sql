@@ -1,5 +1,5 @@
 
-ALTER TABLE `billingcode` CHANGE `company_id` `company_id` INT( 10 ) NOT NULL DEFAULT '0'
+ALTER TABLE `billingcode` CHANGE `company_id` `billingcode_company` INT( 10 ) NOT NULL DEFAULT '0';
 ALTER TABLE `billingcode` ADD `billingcode_category` VARCHAR( 50 ) NOT NULL DEFAULT '';
 
 INSERT INTO sysvals (sysval_key_id, sysval_title, sysval_value, sysval_value_id) VALUES

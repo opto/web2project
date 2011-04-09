@@ -2,12 +2,12 @@
 
 class bcode extends w2p_Core_BaseObject {
 	public $_billingcode_id = null;
-	public $company_id = 0;
+	public $billingcode_company = 0;
 	public $billingcode_id = null;
-	public $billingcode_desc;
-	public $billingcode_name;
-	public $billingcode_value;
-	public $billingcode_status;
+	public $billingcode_desc = null;
+	public $billingcode_name = null;
+	public $billingcode_value = null;
+	public $billingcode_status = null;
     public $billingcode_category = '';
 
 	public function __construct() {
@@ -59,7 +59,7 @@ class bcode extends w2p_Core_BaseObject {
 		$q->addQuery('billingcode_id');
 		$q->addTable('billingcode');
 		$q->addWhere('billingcode_name = \'' . $this->billingcode_name . '\'');
-		$q->addWhere('company_id = ' . (int)$this->company_id);
+		$q->addWhere('billingcode_company = ' . (int)$this->billingcode_company);
 
 		$found_id = $q->loadResult();
 		if ($found_id && $found_id != $this->billingcode_id) {
@@ -73,10 +73,10 @@ class bcode extends w2p_Core_BaseObject {
         $q = new w2p_Database_Query();
         $q->addTable('billingcode', 'bc');
         $q->addQuery('bc.*, c.company_name');
-        $q->leftJoin('companies', 'c', 'c.company_id = bc.company_id');
+        $q->leftJoin('companies', 'c', 'c.company_id = bc.billingcode_company');
         $q->addOrder('company_name, billingcode_name ASC');
         if ($company_id > -1) {
-            $q->addWhere('bc.company_id = ' . (int) $company_id);
+            $q->addWhere('bc.billingcode_company = ' . (int) $company_id);
         }
         if ($activeOnly) {
             $q->addWhere('billingcode_status = 0');

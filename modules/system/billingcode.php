@@ -65,7 +65,7 @@ function delIt2(id) {
     <table width="100%" border="0" cellpadding="1" cellspacing="1" class="std">
         <tr>
             <td>
-                <?php echo arraySelect($companies, 'company_id', 'size="1" class="text" onchange="changeIt();"', $company_id, false); ?>
+                <?php echo arraySelect($companies, 'billingcode_company', 'size="1" class="text" onchange="changeIt();"', $company_id, false); ?>
             </td>
         </tr>
         <tr>
@@ -103,7 +103,7 @@ function delIt2(id) {
             <td>
                 <?php
                     unset($companies[-1]);
-                    echo arraySelect($companies, 'company_id', 'size="1" class="text"', $bcode->company_id, false);
+                    echo arraySelect($companies, 'billingcode_company', 'size="1" class="text"', $bcode->billingcode_company, false);
                 ?>
             </td>
             <td><input type="text" class="text" name="billingcode_name" value="<?php echo $bcode->billingcode_name; ?>" /></td>
