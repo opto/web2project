@@ -125,14 +125,13 @@ function delIt() {
 	<input type="hidden" name="project_id" value="<?php echo $project_id; ?>" />
 </form>
 <table id="tblProjects" border="0" cellpadding="4" cellspacing="0" width="100%" class="std">
-<tr>
-	<td style="border: outset #d1d1cd 1px;background-color:#<?php echo $project->project_color_identifier; ?>" colspan="2">
-	<?php
-echo '<font color="' . bestColor($project->project_color_identifier) . '"><strong>' . $project->project_name . '<strong></font>';
-?>
-	</td>
-</tr>
-
+	<tr>
+		<td style="border: outset #d1d1cd 1px;background-color:#<?php echo $project->project_color_identifier; ?>" colspan="2">
+		<?php
+	echo '<font color="' . bestColor($project->project_color_identifier) . '"><strong>' . $project->project_name . '<strong></font>';
+	?>
+		</td>
+	</tr>
     <tr>
         <td width="50%" valign="top">
             <strong><?php echo $AppUI->_('Details'); ?></strong>
