@@ -575,9 +575,11 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
         //NOTE: This only happens if the create was successful.
 		global $AppUI;
 
-        addHistory($this->_tbl, $this->{$this->_tbl_key}, 'add', $AppUI->_('ACTION') . ': ' . 
-            $store_type . ' ' . $AppUI->_('TABLE') . ': ' . $this->_tbl . ' ' . 
-            $AppUI->_('ID') . ': ' . $this->{$this->_tbl_key});
+        $name = $this->{substr($this->_tbl, 0, -1).'_name'};
+        $name = (isset($name)) ? $name : '';
+        addHistory($this->_tbl, $this->{$this->_tbl_key}, 'add', $name . ' - ' .
+            $AppUI->_('ACTION') . ': ' .  $store_type . ' ' . $AppUI->_('TABLE') . ': ' . 
+            $this->_tbl . ' ' . $AppUI->_('ID') . ': ' . $this->{$this->_tbl_key});
 
         return $this;
     }
@@ -587,10 +589,11 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
     protected function postUpdate() {
         //NOTE: This only happens if the update was successful.
 		global $AppUI;
-
-        addHistory($this->_tbl, $this->{$this->_tbl_key}, 'update', $AppUI->_('ACTION') . ': ' . 
-            $store_type . ' ' . $AppUI->_('TABLE') . ': ' . $this->_tbl . ' ' . 
-            $AppUI->_('ID') . ': ' . $this->{$this->_tbl_key});
+        $name = $this->{substr($this->_tbl, 0, -1).'_name'};
+        $name = (isset($name)) ? $name : '';
+        addHistory($this->_tbl, $this->{$this->_tbl_key}, 'update', $name . ' - ' .
+            $AppUI->_('ACTION') . ': ' .  $store_type . ' ' . $AppUI->_('TABLE') . ': ' . 
+            $this->_tbl . ' ' . $AppUI->_('ID') . ': ' . $this->{$this->_tbl_key});
         return $this;
     }
     protected function preLoad() {
