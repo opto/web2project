@@ -68,6 +68,15 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 		$this->_query = new w2p_Database_Query;
         $this->_dispatcher = new w2p_Core_Dispatcher();
 
+        $this->_dispatcher->subscribe($this, get_class($this), 'preCreateEvent');
+        $this->_dispatcher->subscribe($this, get_class($this), 'postCreateEvent');
+        $this->_dispatcher->subscribe($this, get_class($this), 'preUpdateEvent');
+        $this->_dispatcher->subscribe($this, get_class($this), 'postUpdateEvent');
+        $this->_dispatcher->subscribe($this, get_class($this), 'preDeleteEvent');
+        $this->_dispatcher->subscribe($this, get_class($this), 'postDeleteEvent');
+        $this->_dispatcher->subscribe($this, get_class($this), 'preLoadEvent');
+        $this->_dispatcher->subscribe($this, get_class($this), 'postLoadEvent');
+
         parent::__construct($this->_tbl_module, get_class($this), array());
 	}
 
@@ -131,7 +140,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 	public function load($oid = null, $strip = true)
 	{
 		$this->preLoad();
-        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'preloadEvent'));
+        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'preLoadEvent'));
 
         $k = $this->_tbl_key;
 		if ($oid) {
@@ -150,7 +159,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 			return false;
 		}
 		$q->bindHashToObject($hash, $this, null, $strip);
-        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postloadEvent'));
+        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postLoadEvent'));
 
 		return $this->postLoad();
 	}
@@ -247,9 +256,10 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 	public function store($updateNulls = false)
 	{
         $k = $this->_tbl_key;
+
         // NOTE: I don't particularly like this but it wires things properly.
-        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'preStoreEvent'));
-        ($this->$k) ? $this->preUpdate() : $this->preCreate();
+        $event = ($this->$k) ? 'Update' : 'Create';
+        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'pre'.$event.'Event'));
 
 		$this->w2PTrimAll();
 
@@ -263,16 +273,15 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 		if ($this->$k) {
 			$store_type = 'update';
 			$ret = $q->updateObject($this->_tbl, $this, $this->_tbl_key, $updateNulls);
-            $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postUpdateEvent'));
 		} else {
 			$store_type = 'add';
 			$ret = $q->insertObject($this->_tbl, $this, $this->_tbl_key);
-            $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postCreateEvent'));
 		}
 
 		if ($ret) {
             // NOTE: I don't particularly like this but it wires things properly.
             ($store_type == 'add') ? $this->postCreate() : $this->postUpdate();
+            $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'post'.$event.'Event'));
 		}
 		return ((!$ret) ? (get_class($this) . '::store failed ' . db_error()) : null);
 	}
@@ -350,7 +359,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 	public function delete($oid = null)
 	{
 		$this->preDelete();
-        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'predeleteEvent'));
+        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'preDeleteEvent'));
 
         $k = $this->_tbl_key;
 		if ($oid) {
@@ -367,7 +376,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 
 		if (!$result) {
             $this->postDelete();
-            $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postdeleteEvent'));
+            $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postDeleteEvent'));
 		}
 
 		return $result;
@@ -599,6 +608,6 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 
 	public function publish(w2p_Core_Event $event)
 	{
-        trigger_error("{$event->resourceName} published a {$event->eventName}", E_USER_NOTICE );
+        //trigger_error("{$event->resourceName} published a {$event->eventName}", E_USER_NOTICE );
 	}
 }
