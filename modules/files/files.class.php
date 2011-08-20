@@ -42,6 +42,7 @@ class CFile extends w2p_Core_BaseObject {
 	public function store(CAppUI $AppUI = null) {
         global $AppUI;
         global $helpdesk_available;
+
         $perms = $AppUI->acl();
         $stored = false;
 
@@ -65,18 +66,20 @@ class CFile extends w2p_Core_BaseObject {
                 $this->file_owner = $AppUI->user_id;
             }
             if (($msg = parent::store())) {
-                return $msg;
+                $this->_error['store-check'] = $msg;
+            } else {
+                $stored = true;
             }
-            $stored = true;
         }
         if (0 == $this->file_id && $perms->checkModuleItem('files', 'add')) {
             if (($msg = parent::store())) {
-                return $msg;
+                $this->_error['store-check'] = $msg;
+            } else {
+                $stored = true;
             }
-            $stored = true;
         }
 
-        return true;
+        return $stored;
 	}
 
 	public function hook_cron()

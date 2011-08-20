@@ -113,15 +113,17 @@ class CCompany extends w2p_Core_BaseObject {
          */
         if ($this->company_id && canEdit('companies', $this->company_id)) {
             if (($msg = parent::store())) {
-                return $msg;
+                $this->_error['store-check'] = $msg;
+            } else {
+                $stored = true;
             }
-            $stored = true;
         }
         if (0 == $this->company_id && canAdd('companies')) {
             if (($msg = parent::store())) {
-                return $msg;
+                $this->_error['store-check'] = $msg;
+            } else {
+                $stored = true;
             }
-            $stored = true;
         }
         if ($stored) {
             $custom_fields = new w2p_Core_CustomFields('companies', 'addedit', $this->company_id, 'edit');

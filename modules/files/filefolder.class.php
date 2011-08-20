@@ -78,6 +78,7 @@ class CFileFolder extends w2p_Core_BaseObject {
     public function store(CAppUI $AppUI) {
         $perms = $AppUI->acl();
         $stored = false;
+
         $this->file_folder_id = (int) $this->file_folder_id;
 		$this->file_folder_parent = (int) $this->file_folder_parent;
 
@@ -93,15 +94,17 @@ class CFileFolder extends w2p_Core_BaseObject {
          */
         if ($this->file_folder_id && $perms->checkModuleItem('files', 'edit')) {
             if (($msg = parent::store())) {
-                return $msg;
+                $this->_error['store-check'] = $msg;
+            } else {
+                $stored = true;
             }
-            $stored = true;
         }
         if (0 == $this->file_folder_id && $perms->checkModuleItem('files', 'add')) {
             if (($msg = parent::store())) {
-                return $msg;
+                $this->_error['store-check'] = $msg;
+            } else {
+                $stored = true;
             }
-            $stored = true;
         }
         return $stored;
     }

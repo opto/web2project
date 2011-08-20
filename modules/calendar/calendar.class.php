@@ -578,6 +578,7 @@ class CEvent extends w2p_Core_BaseObject {
 	}
 
     public function store(CAppUI $AppUI) {
+
         $perms = $AppUI->acl();
         $stored = false;
 
@@ -616,15 +617,17 @@ class CEvent extends w2p_Core_BaseObject {
  */
         if ($this->event_id && $perms->checkModuleItem('events', 'edit', $this->event_id)) {
             if (($msg = parent::store())) {
-                return $msg;
+                $this->_error['store-check'] = $msg;
+            } else {
+                $stored = true;
             }
-            $stored = true;
         }
         if (0 == $this->event_id && $perms->checkModuleItem('events', 'add')) {
             if (($msg = parent::store())) {
-                return $msg;
+                $this->_error['store-check'] = $msg;
+            } else {
+                $stored = true;
             }
-            $stored = true;
         }
         if ($stored) {
 // TODO:  I *really* don't like using the POST inside here..
