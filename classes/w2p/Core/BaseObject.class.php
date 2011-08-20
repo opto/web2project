@@ -66,8 +66,14 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 		}
 		$this->_tbl_prefix = w2PgetConfig('dbprefix', '');
 		$this->_query = new w2p_Database_Query;
-        $this->_dispatcher = new w2p_Core_Dispatcher();
 
+        /*
+         * This block does a lot and may need to be simplified.. but the point 
+         *   is that it sets up all of our base Events for later notifications, 
+         *   logging, etc. We also need a way to enable Core Modules (CProject, 
+         *   CTask, etc) and Add On Modules to add their own hooks.
+         */
+        $this->_dispatcher = new w2p_Core_Dispatcher();
         $this->_dispatcher->subscribe($this, get_class($this), 'preCreateEvent');
         $this->_dispatcher->subscribe($this, get_class($this), 'postCreateEvent');
         $this->_dispatcher->subscribe($this, get_class($this), 'preUpdateEvent');
@@ -76,7 +82,6 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
         $this->_dispatcher->subscribe($this, get_class($this), 'postDeleteEvent');
         $this->_dispatcher->subscribe($this, get_class($this), 'preLoadEvent');
         $this->_dispatcher->subscribe($this, get_class($this), 'postLoadEvent');
-
         parent::__construct($this->_tbl_module, get_class($this), array());
 	}
 
