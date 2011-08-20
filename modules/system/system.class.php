@@ -197,7 +197,6 @@ class bcode extends w2p_Core_BaseObject {
         global $AppUI;
         $perms = $AppUI->acl();
         $stored = false;
-        $this->_error = array();
 
         $q = $this->_query;
 		$q->addQuery('billingcode_id');
@@ -208,13 +207,14 @@ class bcode extends w2p_Core_BaseObject {
 		$q->clear();
 
 		if ($found_id && $found_id != $this->_billingcode_id) {
-			return 'Billing Code::code already exists';
+			$this->_error['store-check'] = 'Billing Code::code already exists';
 		} else {
             if ($perms->checkModuleItem('system', 'edit')) {
                 if (($msg = parent::store())) {
-                    return $msg;
+                    $this->_error['store-check'] = $msg;
+                } else {
+                    $stored = true;
                 }
-                $stored = true;
             }
         }
         return $stored;
