@@ -246,6 +246,7 @@ class CFile extends w2p_Core_BaseObject {
 	public function delete(CAppUI $AppUI = null) {
 		global $AppUI;
         global $helpdesk_available;
+
         $perms = $AppUI->acl();
         $this->_error = array();
 
@@ -282,6 +283,10 @@ class CFile extends w2p_Core_BaseObject {
 		global $AppUI;
         $perms = $AppUI->acl();
 
+        if ('' == $this->file_real_filename || 
+                !file_exists(W2P_BASE_DIR . '/files/' . $this->file_project . '/' . $this->file_real_filename)) {
+            return true;
+        }
         if ($perms->checkModuleItem('files', 'delete', $this->file_id)) {
             return @unlink(W2P_BASE_DIR . '/files/' . $this->file_project . '/' . $this->file_real_filename);
         }
