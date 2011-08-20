@@ -581,24 +581,25 @@ class CTask extends w2p_Core_BaseObject {
 				$this->updateDynamics(true);
 			}
             if (($msg = parent::store())) {
-                return $msg;
+                $this->_error['store-check'] = $msg;
+            } else {
+                $stored = true;
+                
+                // Milestone or task end date, or dynamic status has changed,
+                // shift the dates of the tasks that depend on this task
+                if (($this->task_end_date != $oTsk->task_end_date) || ($this->task_dynamic != $oTsk->task_dynamic) || ($this->task_milestone == '1')) {
+                    $this->shiftDependentTasks();
+                }
+
+                if (!$this->task_parent) {
+                    $q->addTable('tasks');
+                    $q->addUpdate('task_parent', $this->task_id);
+                    $q->addUpdate('task_updated', "'".$q->dbfnNowWithTZ()."'", false, true);
+                    $q->addWhere('task_id = ' . (int)$this->task_id);
+                    $q->exec();
+                    $q->clear();
+                }
             }
-
-			// Milestone or task end date, or dynamic status has changed,
-			// shift the dates of the tasks that depend on this task
-			if (($this->task_end_date != $oTsk->task_end_date) || ($this->task_dynamic != $oTsk->task_dynamic) || ($this->task_milestone == '1')) {
-				$this->shiftDependentTasks();
-			}
-
-			if (!$this->task_parent) {
-				$q->addTable('tasks');
-				$q->addUpdate('task_parent', $this->task_id);
-				$q->addUpdate('task_updated', "'".$q->dbfnNowWithTZ()."'", false, true);
-				$q->addWhere('task_id = ' . (int)$this->task_id);
-				$q->exec();
-				$q->clear();
-			}
-            $stored = true;
 		}
 
         if (0 == $this->task_id && $perms->checkModuleItem('tasks', 'add')) {
@@ -610,88 +611,90 @@ class CTask extends w2p_Core_BaseObject {
 				$this->task_end_date = '0000-00-00 00:00:00';
 			}
             if (($msg = parent::store())) {
-                return $msg;
+                $this->_error['store-check'] = $msg;
+            } else {
+                $q->clear();
+                if (!$this->task_parent) {
+                    $q->addTable('tasks');
+                    $q->addUpdate('task_parent', $this->task_id);
+                    $q->addUpdate('task_updated', "'".$q->dbfnNowWithTZ()."'", false, true);
+                    $q->addWhere('task_id = ' . (int)$this->task_id);
+                    $q->exec();
+                    $q->clear();
+                } else {
+                    // importing tasks do not update dynamics
+                    $importing_tasks = true;
+                }
+                $stored = true;
+            }
+		}
+
+        if ($stored) {
+            $last_task_data = $this->getLastTaskData($this->task_project);
+            CProject::updateTaskCache(
+                        $this->task_project,
+                        $last_task_data['task_id'],
+                        $last_task_data['last_date'],
+                        $this->getTaskCount($this->task_project));
+            $this->pushDependencies($this->task_id, $this->task_end_date);
+
+            //split out related departments and store them seperatly.
+            $q->setDelete('task_departments');
+            $q->addWhere('task_id=' . (int)$this->task_id);
+            $q->exec();
+            $q->clear();
+            if (!empty($this->task_departments)) {
+                $departments = explode(',', $this->task_departments);
+                foreach ($departments as $department) {
+                    $q->addTable('task_departments');
+                    $q->addInsert('task_id', $this->task_id);
+                    $q->addInsert('department_id', $department);
+                    $q->exec();
+                    $q->clear();
+                }
             }
 
-			$q->clear();
-			if (!$this->task_parent) {
-				$q->addTable('tasks');
-				$q->addUpdate('task_parent', $this->task_id);
-				$q->addUpdate('task_updated', "'".$q->dbfnNowWithTZ()."'", false, true);
-				$q->addWhere('task_id = ' . (int)$this->task_id);
-				$q->exec();
-				$q->clear();
-			} else {
-				// importing tasks do not update dynamics
-				$importing_tasks = true;
-			}
-            $stored = true;
-		}
+            //split out related contacts and store them seperatly.
+            $q->setDelete('task_contacts');
+            $q->addWhere('task_id=' . (int)$this->task_id);
 
-		$last_task_data = $this->getLastTaskData($this->task_project);
-		CProject::updateTaskCache(
-					$this->task_project,
-					$last_task_data['task_id'],
-					$last_task_data['last_date'],
-					$this->getTaskCount($this->task_project));
-		$this->pushDependencies($this->task_id, $this->task_end_date);
+            $q->exec();
+            $q->clear();
+            if ($this->task_contacts) {
+                foreach ($this->task_contacts as $contact) {
+                    if ($contact) {
+                        $q->addTable('task_contacts');
+                        $q->addInsert('task_id', $this->task_id);
+                        $q->addInsert('contact_id', $contact);
+                        $q->exec();
+                        $q->clear();
+                    }
+                }
+            }
 
-		//split out related departments and store them seperatly.
-		$q->setDelete('task_departments');
-		$q->addWhere('task_id=' . (int)$this->task_id);
-		$q->exec();
-		$q->clear();
-		if (!empty($this->task_departments)) {
-			$departments = explode(',', $this->task_departments);
-			foreach ($departments as $department) {
-				$q->addTable('task_departments');
-				$q->addInsert('task_id', $this->task_id);
-				$q->addInsert('department_id', $department);
-				$q->exec();
-				$q->clear();
-			}
-		}
+            // if is child update parent task
+            if ($this->task_parent && $this->task_parent != $this->task_id) {
 
-		//split out related contacts and store them seperatly.
-		$q->setDelete('task_contacts');
-		$q->addWhere('task_id=' . (int)$this->task_id);
+                if (!$importing_tasks) {
+                    $this->updateDynamics(true);
+                }
 
-		$q->exec();
-		$q->clear();
-		if ($this->task_contacts) {
-			foreach ($this->task_contacts as $contact) {
-				if ($contact) {
-					$q->addTable('task_contacts');
-					$q->addInsert('task_id', $this->task_id);
-					$q->addInsert('contact_id', $contact);
-					$q->exec();
-					$q->clear();
-				}
-			}
-		}
+                $pTask = new CTask();
+                $pTask->load($this->task_parent);
+                $pTask->updateDynamics();
 
-		// if is child update parent task
-        if ($this->task_parent && $this->task_parent != $this->task_id) {
+                if ($oTsk->task_parent != $this->task_parent) {
+                    $old_parent = new CTask();
+                    $old_parent->load($oTsk->task_parent);
+                    $old_parent->updateDynamics();
+                }
+            }
 
-			if (!$importing_tasks) {
-				$this->updateDynamics(true);
-			}
-
-			$pTask = new CTask();
-			$pTask->load($this->task_parent);
-			$pTask->updateDynamics();
-
-			if ($oTsk->task_parent != $this->task_parent) {
-				$old_parent = new CTask();
-				$old_parent->load($oTsk->task_parent);
-				$old_parent->updateDynamics();
-			}
-		}
-
-		// update dependencies
-		if (!empty($this->task_id)) {
-			$this->updateDependencies($this->getDependencies(), $this->task_parent);
-		}
+            // update dependencies
+            if (!empty($this->task_id)) {
+                $this->updateDependencies($this->getDependencies(), $this->task_parent);
+            }
+        }
 
         return $stored;
 	}
