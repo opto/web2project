@@ -13,7 +13,8 @@
  *	@author Andrew Eddie <eddieajau@users.sourceforge.net>
  *	@abstract
  */
-abstract class w2p_Core_BaseObject
+abstract class w2p_Core_BaseObject extends w2p_Core_Event
+    implements w2p_Core_ListenerInterface
 {
 	/**
 	 *	@var string Name of the table prefix in the db schema
@@ -42,6 +43,8 @@ abstract class w2p_Core_BaseObject
 	 */
 	protected $_tbl_module;
 
+    protected $_dispatcher;
+
 	/**
 	 *	Object constructor to set table and key field
 	 *
@@ -63,6 +66,9 @@ abstract class w2p_Core_BaseObject
 		}
 		$this->_tbl_prefix = w2PgetConfig('dbprefix', '');
 		$this->_query = new w2p_Database_Query;
+        $this->_dispatcher = new w2p_Core_Dispatcher();
+
+        parent::__construct($this->_tbl_module, get_class($this), array());
 	}
 
     /**
@@ -125,6 +131,7 @@ abstract class w2p_Core_BaseObject
 	public function load($oid = null, $strip = true)
 	{
 		$this->preLoad();
+        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'preloadEvent'));
 
         $k = $this->_tbl_key;
 		if ($oid) {
@@ -143,6 +150,7 @@ abstract class w2p_Core_BaseObject
 			return false;
 		}
 		$q->bindHashToObject($hash, $this, null, $strip);
+        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postloadEvent'));
 
 		return $this->postLoad();
 	}
@@ -240,6 +248,7 @@ abstract class w2p_Core_BaseObject
 	{
         $k = $this->_tbl_key;
         // NOTE: I don't particularly like this but it wires things properly.
+        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'preStoreEvent'));
         ($this->$k) ? $this->preUpdate() : $this->preCreate();
 
 		$this->w2PTrimAll();
@@ -254,9 +263,11 @@ abstract class w2p_Core_BaseObject
 		if ($this->$k) {
 			$store_type = 'update';
 			$ret = $q->updateObject($this->_tbl, $this, $this->_tbl_key, $updateNulls);
+            $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postUpdateEvent'));
 		} else {
 			$store_type = 'add';
 			$ret = $q->insertObject($this->_tbl, $this, $this->_tbl_key);
+            $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postCreateEvent'));
 		}
 
 		if ($ret) {
@@ -339,6 +350,7 @@ abstract class w2p_Core_BaseObject
 	public function delete($oid = null)
 	{
 		$this->preDelete();
+        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'predeleteEvent'));
 
         $k = $this->_tbl_key;
 		if ($oid) {
@@ -355,6 +367,7 @@ abstract class w2p_Core_BaseObject
 
 		if (!$result) {
             $this->postDelete();
+            $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postdeleteEvent'));
 		}
 
 		return $result;
@@ -580,7 +593,12 @@ abstract class w2p_Core_BaseObject
         //NOTE: This only happens if the delete was successful.
 		global $AppUI;
 
-        addHistory($this->{$this->_tbl_key}, $this->$k, 'delete');
+        addHistory($this->_tbl, $this->{$this->_tbl_key}, 'delete');
         return $this;
     }
+
+	public function publish(w2p_Core_Event $event)
+	{
+        trigger_error("{$event->resourceName} published a {$event->eventName}", E_USER_NOTICE );
+	}
 }
