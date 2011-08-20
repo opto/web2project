@@ -546,60 +546,64 @@ class CProject extends w2p_Core_BaseObject {
         $this->project_updated = $q->dbfnNowWithTZ();
         if ($this->project_id && $perms->checkModuleItem('projects', 'edit', $this->project_id)) {
             if (($msg = parent::store())) {
-                return $msg;
+                $this->_error['store-check'] = $msg;
+            } else {
+                $stored = true;
             }
-            $stored = true;
         }
         if (0 == $this->project_id && $perms->checkModuleItem('projects', 'add')) {
             $this->project_created = $q->dbfnNowWithTZ();
             if (($msg = parent::store())) {
-                return $msg;
-            }
-            if (0 == $this->project_parent || 0 == $this->project_original_parent) {
-                $this->project_parent = $this->project_id;
-                $this->project_original_parent = $this->project_id;
-                if (($msg = parent::store())) {
-                    return $msg;
+                $this->_error['store-check'] = $msg;
+            } else {
+                $stored = true;
+                if (0 == $this->project_parent || 0 == $this->project_original_parent) {
+                    $this->project_parent = $this->project_id;
+                    $this->project_original_parent = $this->project_id;
+                    if (($msg = parent::store())) {
+                        $this->_error['store-check'] = $msg;
+                    } else {
+                        $stored = true;
+                    }
                 }
             }
-            $stored = true;
         }
 
-		//split out related departments and store them seperatly.
-		$q->setDelete('project_departments');
-		$q->addWhere('project_id=' . (int)$this->project_id);
-		$q->exec();
-		$q->clear();
-		if ($this->project_departments) {
-			foreach ($this->project_departments as $department) {
-				if ($department) {
-                    $q->addTable('project_departments');
-                    $q->addInsert('project_id', $this->project_id);
-                    $q->addInsert('department_id', $department);
-                    $q->exec();
-                    $q->clear();
-                }
-			}
-		}
-
-		//split out related contacts and store them seperatly.
-		$q->setDelete('project_contacts');
-		$q->addWhere('project_id=' . (int)$this->project_id);
-		$q->exec();
-		$q->clear();
-		if ($this->project_contacts) {
-			foreach ($this->project_contacts as $contact) {
-				if ($contact) {
-					$q->addTable('project_contacts');
-					$q->addInsert('project_id', $this->project_id);
-					$q->addInsert('contact_id', $contact);
-					$q->exec();
-					$q->clear();
-				}
-			}
-		}
-
         if ($stored) {
+            //split out related departments and store them seperatly.
+            $q->setDelete('project_departments');
+            $q->addWhere('project_id=' . (int)$this->project_id);
+            $q->exec();
+            $q->clear();
+            if ($this->project_departments) {
+                foreach ($this->project_departments as $department) {
+                    if ($department) {
+                        $q->addTable('project_departments');
+                        $q->addInsert('project_id', $this->project_id);
+                        $q->addInsert('department_id', $department);
+                        $q->exec();
+                        $q->clear();
+                    }
+                }
+            }
+
+            //split out related contacts and store them seperatly.
+            $q->setDelete('project_contacts');
+            $q->addWhere('project_id=' . (int)$this->project_id);
+            $q->exec();
+            $q->clear();
+            if ($this->project_contacts) {
+                foreach ($this->project_contacts as $contact) {
+                    if ($contact) {
+                        $q->addTable('project_contacts');
+                        $q->addInsert('project_id', $this->project_id);
+                        $q->addInsert('contact_id', $contact);
+                        $q->exec();
+                        $q->clear();
+                    }
+                }
+            }
+
             $custom_fields = new w2p_Core_CustomFields('projects', 'addedit', $this->project_id, 'edit');
             $custom_fields->bind($_POST);
             $sql = $custom_fields->store($this->project_id); // Store Custom Fields
