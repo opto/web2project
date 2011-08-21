@@ -144,7 +144,6 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 	 */
 	public function load($oid = null, $strip = true)
 	{
-		$this->preLoad();
         $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'preLoadEvent'));
 
         $k = $this->_tbl_key;
@@ -166,7 +165,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 		$q->bindHashToObject($hash, $this, null, $strip);
         $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postLoadEvent'));
 
-		return $this->postLoad();
+		return $this;
 	}
 
 	/**
@@ -285,7 +284,6 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 
 		if ($ret) {
             // NOTE: I don't particularly like this but it wires things properly.
-            ($store_type == 'add') ? $this->postCreate() : $this->postUpdate();
             $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'post'.$event.'Event'));
 		}
 		return ((!$ret) ? (get_class($this) . '::store failed ' . db_error()) : null);
@@ -363,7 +361,6 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 	 */
 	public function delete($oid = null)
 	{
-		$this->preDelete();
         $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'preDeleteEvent'));
 
         $k = $this->_tbl_key;
@@ -380,7 +377,6 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 		$result = ((!$q->exec()) ? db_error() : null);
 
 		if (!$result) {
-            $this->postDelete();
             $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postDeleteEvent'));
 		}
 
@@ -616,6 +612,23 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 
 	public function publish(w2p_Core_Event $event)
 	{
+        switch($event->eventName) {
+            case 'preCreate':
+            case 'postCreate':
+            case 'preUpdate':
+            case 'postCreate':
+            case 'preUpdate':
+            case 'postUpdate':
+            case 'preLoad':
+            case 'postLoad':
+            case 'preDelete':
+            case 'postDelete':
+                $this->{$event->eventName};
+                break;
+            default:
+                //do nothing
+        }
+        
         //trigger_error("{$event->resourceName} published a {$event->eventName}", E_USER_NOTICE );
 	}
 }
