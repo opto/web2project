@@ -11,8 +11,10 @@
  *
  *	This is the Dispatcher used for cross-module communications and heavily 
  *    based on http://dustint.com/post/38/building-a-php-publish-subscribe-system
+ *    from Dustin Thomson. Used here with permission received on 21 Aug 2011.
  *  
- *	@author Keith Casey <caseydk@sourceforge.net>
+ *	@author Dustin Thomson <dustin@dustint.com>
+ *	@author Keith Casey (maintainer) <caseydk@sourceforge.net>
  *
  */
 interface w2p_Core_ListenerInterface
