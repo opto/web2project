@@ -289,6 +289,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
             $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'post'.$event.'Event'));
 		} else {
             $result = db_error();
+            $this->_error['store'] = $result;
         }
 
         return $result;
@@ -369,7 +370,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 			$this->$k = intval($oid);
 		}
 		if (!$this->canDelete()) {
-			$this->_error['delete'] = 'noDeletePermission';
+			$this->_error['delete-check'] = 'noDeletePermission';
             return 'noDeletePermission';
 		}
 
@@ -381,6 +382,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
             $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postDeleteEvent'));
         } else {
             $result = db_error();
+            $this->_error['delete'] = $result;
         }
 
 		return $result;
