@@ -57,7 +57,8 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 	 */
 	public function __construct($table, $key, $module = '')
 	{
-		$this->_tbl = $table;
+		$this->_errror = array();
+        $this->_tbl = $table;
 		$this->_tbl_key = $key;
 		if ($module) {
 			$this->_tbl_module = $module;
@@ -207,8 +208,6 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 	 */
 	public function check()
 	{
-		$this->_errror = array();
-
         return $this->_errror;
 	}
 
@@ -267,12 +266,12 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 
 		$this->w2PTrimAll();
 
-		$msg = $this->check();
-		if ((is_array($msg) && count($msg)) || (!is_array($msg) && strlen($msg))) {
-			return get_class($this) . '::store-check failed ' . $msg;
+        $this->_error = $this->check();
+        if (count($this->_error)) {
+			return get_class($this) . '::store-check failed';
 		}
-		$k = $this->_tbl_key;
 
+		$k = $this->_tbl_key;
         $q = $this->_query;
 		if ($this->$k) {
 			$store_type = 'update';
@@ -298,15 +297,16 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 	 *	@param array Optional array to compiles standard joins: format [label=>'Label',name=>'table name',idfield=>'field',joinfield=>'field']
 	 *	@return true|false
 	 */
-	public function canDelete(&$msg, $oid = null, $joins = null)
+	public function canDelete(&$msg = '', $oid = null, $joins = null)
 	{
 		global $AppUI;
+        $result = false;
 
 		// First things first.  Are we allowed to delete?
 		$acl = &$AppUI->acl();
 		if (!$acl->checkModuleItem($this->_tbl_module, 'delete', $oid)) {
 			$this->_error['noDeletePermission'] = 'noDeletePermission';
-			return false;
+			return $result;
 		}
 
 		$k = $this->_tbl_key;
@@ -327,30 +327,25 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 			}
 			$obj = null;
 			$q->loadObject($obj);
-			$q->clear();
 
 			if (!$obj) {
-				$msg = db_error();
-				return false;
-			}
-			$msg = array();
-			foreach ($joins as $table) {
-				$k = $table['idfield'];
-				if ($obj->$k) {
-					$msg[] = $AppUI->_($table['label']);
-				}
-			}
-
-			if (count($msg)) {
-				$msg = $AppUI->_('noDeleteRecord') . ': ' . implode(', ', $msg);
-                $this->_error = $msg;
-				return false;
+                $this->_error['canDelete-error'] = db_error();
 			} else {
-				return true;
-			}
+                $msg = array();
+                foreach ($joins as $table) {
+                    $k = $table['idfield'];
+                    if ($obj->$k) {
+                        $this->_error['canDelete-error-'.$table['name']] = db_error();
+                    }
+                }
+
+                if (0 == count($this->_errors)) {
+                    $result = true;
+                }
+            }
 		}
 
-		return true;
+		return $result;
 	}
 
 	/**
@@ -367,8 +362,8 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 		if ($oid) {
 			$this->$k = intval($oid);
 		}
-		if (!$this->canDelete($msg)) {
-			return false;
+		if (!$this->canDelete()) {
+			return 'noDeletePermission';
 		}
 
 		$q = $this->_query;
