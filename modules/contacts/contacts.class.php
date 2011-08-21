@@ -178,12 +178,14 @@ class CContact extends w2p_Core_BaseObject {
 
 	public function delete(CAppUI $AppUI = null) {
         global $AppUI;
-        $this->_error = array();
 
-        if ($msg = parent::delete()) {
-            return $msg;
+        if ($perms->checkModuleItem('departments', 'delete', $this->dept_id)) {
+            if ($msg = parent::delete()) {
+                return $msg;
+            }
+            return true;
         }
-        return true;
+        return false;
 	}
 
 	public function check() {

@@ -179,18 +179,19 @@ class bcode extends w2p_Core_BaseObject {
 
 	public function delete(CAppUI $AppUI = null) {
 
-        $this->_error = array();
 		$q = $this->_query;
 		$q->addTable('billingcode');
 		$q->addUpdate('billingcode_status', '1');
 		$q->addWhere('billingcode_id = ' . (int)$this->_billingcode_id);
-		if (!$q->exec()) {
-			$q->clear();
-			return db_error();
-		} else {
-			$q->clear();
-			return true;
-		}
+        if ($q->exec()) {
+            $result = null;
+        } else {
+            $result = db_error();
+            $this->_error['delete-messages'] = $result;
+            return $result;
+        }
+
+        return $result;
 	}
 
 	public function store(CAppUI $AppUI = null) {

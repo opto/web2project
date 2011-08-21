@@ -159,13 +159,7 @@ class CProject extends w2p_Core_BaseObject {
 
         $perms = $AppUI->acl();
         $result = false;
-        $this->_error = array();
 
-        /*
-         * TODO: This should probably use the canDelete method from above too to
-         *   not only check permissions but to check dependencies... luckily the
-         *   previous version didn't check it either, so we're no worse off.
-         */
         if ($perms->checkModuleItem('projects', 'delete', $this->project_id)) {
             $q = $this->_query;
             $q->addTable('tasks');

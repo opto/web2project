@@ -135,8 +135,6 @@ class CUser extends w2p_Core_BaseObject {
 	public function delete(CAppUI $AppUI = null) {
 		global $AppUI;
         $perms = $AppUI->acl();
-        $canDelete = (int) $this->canDelete();
-        $this->_error = array();
 
         if ($perms->checkModuleItem('users', 'delete', $this->user_id) && $canDelete) {
 

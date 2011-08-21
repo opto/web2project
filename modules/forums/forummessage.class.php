@@ -97,7 +97,6 @@ class CForumMessage extends w2p_Core_BaseObject {
 
         $perms = $AppUI->acl();
         $result = false;
-        $this->_error = array();
 
         if ($perms->checkModuleItem('forums', 'delete', $this->project_id)) {
             $q = $this->_query;
@@ -114,10 +113,12 @@ class CForumMessage extends w2p_Core_BaseObject {
 
             $q->setDelete('forum_messages');
             $q->addWhere('message_id = ' . (int)$this->message_id);
-            if (!$q->exec()) {
-                $result = db_error();
-            } else {
+            if ($q->exec()) {
                 $result = null;
+            } else {
+                $result = db_error();
+                $this->_error['delete-messages'] = $result;
+                return $result;
             }
             $q->clear();
 

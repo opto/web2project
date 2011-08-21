@@ -174,7 +174,6 @@ class CDepartment extends w2p_Core_BaseObject {
 	public function delete(CAppUI $AppUI = null) {
 		global $AppUI;
         $perms = $AppUI->acl();
-        $this->_error = array();
 
         if ($perms->checkModuleItem('departments', 'delete', $this->dept_id)) {
             $q = $this->_query;
@@ -185,8 +184,8 @@ class CDepartment extends w2p_Core_BaseObject {
             $q->clear();
 
             if (count($rows)) {
-                //return 'deptWithSub';
-                return false;
+                $this->_error['deptWithSub'] = 'deptWithSub';
+                return 'deptWithSub';
             }
 
             $q->addTable('project_departments', 'pd');
@@ -196,8 +195,8 @@ class CDepartment extends w2p_Core_BaseObject {
             $q->clear();
 
             if (count($rows)) {
-                //return 'deptWithProject';
-                return false;
+                $this->_error['deptWithProject'] = 'deptWithProject';
+                return 'deptWithProject';
             }
 
             if ($msg = parent::delete()) {

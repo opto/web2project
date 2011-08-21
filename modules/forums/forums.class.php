@@ -181,7 +181,6 @@ class CForum extends w2p_Core_BaseObject {
 	public function delete(CAppUI $AppUI = null) {
         global $AppUI;
         $perms = $AppUI->acl();
-        $this->_error = array();
 
         if ($perms->checkModuleItem('forums', 'delete', $this->forum_id)) {
             $q = $this->_query;
@@ -192,10 +191,14 @@ class CForum extends w2p_Core_BaseObject {
             $q->clear();
             $q->setDelete('forum_messages');
             $q->addWhere('message_forum = ' . (int)$this->forum_id);
-            if (!$q->exec()) {
-                return db_error();
+            if ($q->exec()) {
+                $result = null;
+            } else {
+                $result = db_error();
+                $this->_error['delete-messages'] = $result;
+                return $result;
             }
-
+            
             if ($msg = parent::delete()) {
                 return $msg;
             }

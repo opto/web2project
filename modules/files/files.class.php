@@ -253,6 +253,7 @@ class CFile extends w2p_Core_BaseObject {
         if ($perms->checkModuleItem('files', 'delete', $this->file_id)) {
             // remove the file from the file system
             if (!$this->deleteFile($AppUI)) {
+                $this->_error['file-delete'] = 'file-delete';
                 return false;
             }
 
@@ -266,8 +267,9 @@ class CFile extends w2p_Core_BaseObject {
             $q->addQuery('*');
             $q->addWhere('file_id = ' . (int)$this->file_id);
             if (!$q->exec()) {
-                $q->clear();
-                return db_error();
+                $result = db_error();
+                $this->_error['index-delete'] = $result;
+                return $result;
             }
             if ($helpdesk_available && $this->file_helpdesk_item != 0) {
                 $this->addHelpDeskTaskLog();

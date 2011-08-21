@@ -755,7 +755,6 @@ class CTask extends w2p_Core_BaseObject {
 	public function delete(CAppUI $AppUI = null) {
 		global $AppUI;
         $perms = $AppUI->acl();
-        $this->_error = array();
 
         if ($perms->checkModuleItem('tasks', 'delete', $this->task_id)) {
             //load it before deleting it because we need info on it to update the parents later on
@@ -785,6 +784,14 @@ class CTask extends w2p_Core_BaseObject {
             $q->setDelete('task_dependencies');
             $q->addWhere('dependencies_task_id IN (' . $implodedTaskList . ') OR
                 dependencies_req_task_id IN ('. $implodedTaskList .')');
+            if ($q->exec()) {
+                $result = null;
+            } else {
+                $result = db_error();
+                $this->_error['delete-dependencies'] = $result;
+                return $result;
+            }
+
             if (!($q->exec())) {
                 return db_error();
             }
@@ -793,8 +800,12 @@ class CTask extends w2p_Core_BaseObject {
             // delete affiliated task_dependencies
             $q->setDelete('task_contacts');
             $q->addWhere('task_id = '.$this->task_id);
-            if (!($q->exec())) {
-                return db_error();
+            if ($q->exec()) {
+                $result = null;
+            } else {
+                $result = db_error();
+                $this->_error['delete-contacts'] = $result;
+                return $result;
             }
 
             if ($msg = parent::delete()) {

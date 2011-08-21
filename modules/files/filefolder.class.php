@@ -35,11 +35,6 @@ class CFileFolder extends w2p_Core_BaseObject {
 	public function delete(CAppUI $AppUI) {
         $perms = $AppUI->acl();
 
-        $this->_error = $this->canDelete(null, $this->file_folder_id);
-        if (count($this->_error)) {
-            return $this->_error;
-        }
-
         if ($perms->checkModuleItem('files', 'edit')) {
             if ($msg = parent::delete()) {
                 return $msg;
