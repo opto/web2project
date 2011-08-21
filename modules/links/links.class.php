@@ -103,7 +103,6 @@ class CLink extends w2p_Core_BaseObject {
 
     public function delete(CAppUI $AppUI) {
         $perms = $AppUI->acl();
-        $this->_error = array();
 
         if ($perms->checkModuleItem('links', 'delete', $this->link_id)) {
             if ($msg = parent::delete()) {

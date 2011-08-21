@@ -268,7 +268,9 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 
         $this->_error = $this->check();
         if (count($this->_error)) {
-			return get_class($this) . '::store-check failed';
+			$msg = get_class($this) . '::store-check failed';
+            $this->_error['store-check'] = $msg;
+            return $msg;
 		}
 
 		$k = $this->_tbl_key;
@@ -282,10 +284,14 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 		}
 
 		if ($ret) {
-            // NOTE: I don't particularly like this but it wires things properly.
+            $result = null;
+            // NOTE: I don't particularly like how the name is generated but it wires things properly.
             $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'post'.$event.'Event'));
-		}
-		return ((!$ret) ? (get_class($this) . '::store failed ' . db_error()) : null);
+		} else {
+            $result = db_error();
+        }
+
+        return $result;
 	}
 
 	/**
@@ -363,17 +369,19 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 			$this->$k = intval($oid);
 		}
 		if (!$this->canDelete()) {
-			return 'noDeletePermission';
+			$this->_error['delete'] = 'noDeletePermission';
+            return 'noDeletePermission';
 		}
 
 		$q = $this->_query;
 		$q->setDelete($this->_tbl);
 		$q->addWhere($this->_tbl_key . ' = \'' . $this->$k . '\'');
-		$result = ((!$q->exec()) ? db_error() : null);
-
-		if (!$result) {
+        if ($q->exec()) {
+            $result = null;
             $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postDeleteEvent'));
-		}
+        } else {
+            $result = db_error();
+        }
 
 		return $result;
 	}
