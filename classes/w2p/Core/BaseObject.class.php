@@ -266,6 +266,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 
 		$this->w2PTrimAll();
 
+        // NOTE: This is *very* similar to the store() flow within delete()..
         $this->_error = $this->check();
         if (count($this->_error)) {
 			$msg = get_class($this) . '::store-check failed';
@@ -369,9 +370,13 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 		if ($oid) {
 			$this->$k = intval($oid);
 		}
-		if (!$this->canDelete()) {
-			$this->_error['delete-check'] = 'noDeletePermission';
-            return 'noDeletePermission';
+
+        // NOTE: This is *very* similar to the check() flow within store()..
+        $this->canDelete();
+		if (count($this->_error)) {
+			$msg = get_class($this) . '::delete-check failed';
+            $this->_error['delete-check'] = $msg;
+            return $msg;
 		}
 
 		$q = $this->_query;
