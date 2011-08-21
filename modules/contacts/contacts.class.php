@@ -102,14 +102,14 @@ class CContact extends w2p_Core_BaseObject {
          */
         if ($this->contact_id) {// && $perms->checkModuleItem('contacts', 'edit', $this->contact_id)) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }
         }
         if (0 == $this->contact_id) {// && $perms->checkModuleItem('contacts', 'add')) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }

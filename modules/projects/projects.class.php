@@ -546,7 +546,7 @@ class CProject extends w2p_Core_BaseObject {
         $this->project_updated = $q->dbfnNowWithTZ();
         if ($this->project_id && $perms->checkModuleItem('projects', 'edit', $this->project_id)) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }
@@ -554,7 +554,7 @@ class CProject extends w2p_Core_BaseObject {
         if (0 == $this->project_id && $perms->checkModuleItem('projects', 'add')) {
             $this->project_created = $q->dbfnNowWithTZ();
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
                 if (0 == $this->project_parent || 0 == $this->project_original_parent) {

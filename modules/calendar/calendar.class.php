@@ -617,14 +617,14 @@ class CEvent extends w2p_Core_BaseObject {
  */
         if ($this->event_id && $perms->checkModuleItem('events', 'edit', $this->event_id)) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }
         }
         if (0 == $this->event_id && $perms->checkModuleItem('events', 'add')) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }

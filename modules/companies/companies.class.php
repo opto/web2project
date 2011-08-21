@@ -113,14 +113,14 @@ class CCompany extends w2p_Core_BaseObject {
          */
         if ($this->company_id && canEdit('companies', $this->company_id)) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }
         }
         if (0 == $this->company_id && canAdd('companies')) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }

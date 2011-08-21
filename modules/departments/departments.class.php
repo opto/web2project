@@ -156,14 +156,14 @@ class CDepartment extends w2p_Core_BaseObject {
 
         if ($this->dept_id && $perms->checkModuleItem('departments', 'edit', $this->dept_id)) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }
 		}
         if (0 == $this->dept_id && $perms->checkModuleItem('departments', 'add')) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }

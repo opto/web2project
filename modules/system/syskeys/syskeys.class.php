@@ -94,7 +94,7 @@ class CSysVal extends w2p_Core_BaseObject {
 			$q->addWhere('sysval_title = \'' . $this->sysval_title . '\'');
 			if (!$q->exec()) {
 				$msg = get_class($this) . '::store failed: ' . db_error();
-                $this->_error['store-failed'] = $msg;
+                $this->_error['store'] = $msg;
                 return false;
 			}
 		}

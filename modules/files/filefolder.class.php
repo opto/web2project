@@ -94,14 +94,14 @@ class CFileFolder extends w2p_Core_BaseObject {
          */
         if ($this->file_folder_id && $perms->checkModuleItem('files', 'edit')) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }
         }
         if (0 == $this->file_folder_id && $perms->checkModuleItem('files', 'add')) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }

@@ -62,7 +62,7 @@ class CUser extends w2p_Core_BaseObject {
             }
 
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }
@@ -73,7 +73,7 @@ class CUser extends w2p_Core_BaseObject {
             $this->user_password = md5($this->user_password);
 
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }

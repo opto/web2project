@@ -207,11 +207,11 @@ class bcode extends w2p_Core_BaseObject {
 		$q->clear();
 
 		if ($found_id && $found_id != $this->_billingcode_id) {
-			$this->_error['store-check'] = 'Billing Code::code already exists';
+			$this->_error['store'] = 'Billing Code::code already exists';
 		} else {
             if ($perms->checkModuleItem('system', 'edit')) {
                 if (($msg = parent::store())) {
-                    $this->_error['store-check'] = $msg;
+                    $this->_error['store'] = $msg;
                 } else {
                     $stored = true;
                 }

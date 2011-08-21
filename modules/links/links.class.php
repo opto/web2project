@@ -135,14 +135,14 @@ class CLink extends w2p_Core_BaseObject {
         $this->link_date = $q->dbfnNowWithTZ();
         if ($this->link_id && $perms->checkModuleItem('links', 'edit', $this->link_id)) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }
         }
         if (0 == $this->link_id && $perms->checkModuleItem('links', 'add')) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }

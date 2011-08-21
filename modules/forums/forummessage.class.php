@@ -56,7 +56,7 @@ class CForumMessage extends w2p_Core_BaseObject {
 			$q->exec();
 
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }
@@ -64,7 +64,7 @@ class CForumMessage extends w2p_Core_BaseObject {
         if (0 == $this->message_id && $perms->checkModuleItem('forums', 'add')) {
             $this->message_date = $q->dbfnNowWithTZ();
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 
                 $q->addTable('forum_messages');

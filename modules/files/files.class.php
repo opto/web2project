@@ -66,14 +66,14 @@ class CFile extends w2p_Core_BaseObject {
                 $this->file_owner = $AppUI->user_id;
             }
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }
         }
         if (0 == $this->file_id && $perms->checkModuleItem('files', 'add')) {
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
             }
