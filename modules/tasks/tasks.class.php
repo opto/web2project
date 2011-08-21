@@ -566,6 +566,7 @@ class CTask extends w2p_Core_BaseObject {
 				$this->task_end_date = '0000-00-00 00:00:00';
 			}
             if (($msg = parent::store())) {
+                $this->_error['store'] = $msg;
                 return $msg;
             }
 
@@ -581,7 +582,7 @@ class CTask extends w2p_Core_BaseObject {
 				$this->updateDynamics(true);
 			}
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $stored = true;
                 
@@ -611,7 +612,7 @@ class CTask extends w2p_Core_BaseObject {
 				$this->task_end_date = '0000-00-00 00:00:00';
 			}
             if (($msg = parent::store())) {
-                $this->_error['store-check'] = $msg;
+                $this->_error['store'] = $msg;
             } else {
                 $q->clear();
                 if (!$this->task_parent) {
