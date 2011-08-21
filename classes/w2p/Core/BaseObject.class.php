@@ -305,7 +305,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 		// First things first.  Are we allowed to delete?
 		$acl = &$AppUI->acl();
 		if (!$acl->checkModuleItem($this->_tbl_module, 'delete', $oid)) {
-			$msg = $AppUI->_('noDeletePermission');
+			$this->_error['noDeletePermission'] = 'noDeletePermission';
 			return false;
 		}
 
@@ -368,7 +368,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 			$this->$k = intval($oid);
 		}
 		if (!$this->canDelete($msg)) {
-			return $msg;
+			return false;
 		}
 
 		$q = $this->_query;
