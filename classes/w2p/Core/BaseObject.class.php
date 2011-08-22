@@ -57,7 +57,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 	 */
 	public function __construct($table, $key, $module = '')
 	{
-		$this->_errror = array();
+		$this->_error = array();
         $this->_tbl = $table;
 		$this->_tbl_key = $key;
 		if ($module) {
@@ -104,6 +104,11 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 	{
 		return $this->_error;
 	}
+    public function clearErrors()
+    {
+        $this->_error = array();
+    }
+
 	/**
 	 *	Binds a named array/hash to this object
 	 *
@@ -509,7 +514,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
 		return $where;
 	}
 
-	public function setAllowedSQL($uid, &$query, $index = null, $key = null)
+	public function setAllowedSQL($uid, $query, $index = null, $key = null)
 	{
 		$perms = &$GLOBALS['AppUI']->acl();
 		$uid = intval($uid);
@@ -639,6 +644,6 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event
                 //do nothing
         }
         
-        //trigger_error("{$event->resourceName} published a {$event->eventName}", E_USER_NOTICE );
+        //error_log("{$event->resourceName} published a {$event->eventName}");
 	}
 }
