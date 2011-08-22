@@ -791,10 +791,6 @@ class CTask extends w2p_Core_BaseObject {
                 $this->_error['delete-dependencies'] = $result;
                 return $result;
             }
-
-            if (!($q->exec())) {
-                return db_error();
-            }
             $q->clear();
 
             // delete affiliated task_dependencies
