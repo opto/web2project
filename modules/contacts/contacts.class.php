@@ -180,13 +180,13 @@ class CContact extends w2p_Core_BaseObject {
         global $AppUI;
         $perms = $AppUI->acl();
 
-        if ($perms->checkModuleItem('contacts', 'delete', $this->contact_id)) {
+        //if ($perms->checkModuleItem('contacts', 'delete', $this->contact_id)) {
             if ($msg = parent::delete()) {
                 return $msg;
             }
             return true;
-        }
-        return false;
+        //}
+        //return false;
 	}
 
 	public function check() {
