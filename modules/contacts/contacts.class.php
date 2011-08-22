@@ -178,8 +178,9 @@ class CContact extends w2p_Core_BaseObject {
 
 	public function delete(CAppUI $AppUI = null) {
         global $AppUI;
+        $perms = $AppUI->acl();
 
-        if ($perms->checkModuleItem('departments', 'delete', $this->dept_id)) {
+        if ($perms->checkModuleItem('contacts', 'delete', $this->contact_id)) {
             if ($msg = parent::delete()) {
                 return $msg;
             }
@@ -203,7 +204,7 @@ class CContact extends w2p_Core_BaseObject {
 	    return $errorArray;
 	}
 
-	public function canDelete($msg, $oid = null, $joins = null) {
+	public function canDelete($msg = '', $oid = null, $joins = null) {
         $tables[] = array('label' => 'Users', 'name' => 'users', 'idfield' => 'user_id', 'joinfield' => 'user_contact');
 
 		return parent::canDelete($msg, $this->user_id, $tables);
