@@ -358,12 +358,12 @@ class Companies_Test extends PHPUnit_Extensions_Database_TestCase
     /**
      * Tests the delete of a company
      */
-    public function testDeleteCompany()
+    public function testDelete()
     {
         global $AppUI;
 
         $this->obj->company_id = 1;
-        $msg = $this->obj->delete($AppUI);
+        $this->obj->delete($AppUI);
         $this->assertArrayHasKey('delete-check', $this->obj->getError());
         $this->obj->clearErrors();
 
