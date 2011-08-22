@@ -455,6 +455,7 @@ class CProject extends w2p_Core_BaseObject {
 		$q->addOrder('project_short_name');
 		$this->setAllowedSQL($userId, $q, null, 'pr');
 		$allowedProjectRows = $q->exec();
+        $q->clear();
 
 		return $allowedProjectRows;
 	}
