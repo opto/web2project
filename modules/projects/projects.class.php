@@ -803,7 +803,7 @@ class CProject extends w2p_Core_BaseObject {
 		$q->addQuery('billingcode_id, billingcode_name');
 		$q->addOrder('billingcode_name');
 		$q->addWhere('billingcode_status = 0');
-		$q->addWhere('(company_id = 0 OR company_id = ' . (int) $companyId . ')');
+		$q->addWhere('(billingcode_company = 0 OR billingcode_company = ' . (int) $companyId . ')');
 		$task_log_costcodes = $q->loadHashList();
 
 		if ($all) {
@@ -812,7 +812,7 @@ class CProject extends w2p_Core_BaseObject {
 			$q->addQuery('billingcode_id, billingcode_name');
 			$q->addOrder('billingcode_name');
 			$q->addWhere('billingcode_status = 1');
-			$q->addWhere('(company_id = 0 OR company_id = ' . (int) $companyId . ')');
+			$q->addWhere('(billingcode_company = 0 OR billingcode_company = ' . (int) $companyId . ')');
 
 			$billingCodeList = $q->loadHashList();
 			foreach($billingCodeList as $id => $code) {
