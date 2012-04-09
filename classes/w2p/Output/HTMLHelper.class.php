@@ -109,6 +109,7 @@ class w2p_Output_HTMLHelper
      *   common suffix.
      */
     public function createCell($fieldName, $value, $custom = array()) {
+        $additional = '';
 
         $last_underscore = strrpos($fieldName, '_');
         $prefix = ($last_underscore !== false) ? substr($fieldName, 0, $last_underscore) : $fieldName;
@@ -130,7 +131,7 @@ class w2p_Output_HTMLHelper
                 $obj = new $class();
                 $obj->load($value);
                 $link = '?m='. w2p_pluralize($module) .'&a=view&'.$module.'_id='.$value;
-                $cell = '<a href="'.$link.'">'.$obj->{"$module"._name}.'</a>';
+                $cell = '<a href="'.$link.'">'.$obj->{"$module".'_name'}.'</a>';
                 $suffix .= ' _name';
                 break;
             case '_department':
@@ -236,15 +237,16 @@ class w2p_Output_HTMLHelper
                 break;
             case '_count':
             case '_duration':
+            case '_hours':
                 $cell = $value;
                 break;
             case '_password':
                 $cell = '('.$this->_AppUI->_('hidden').')';
                 break;
             case '_version':
-                $cell = number_format($value, 2);
+                $value = (int) (100 * $value);
+                $cell = number_format($value/100, 2);
                 break;
-            case '_hours':
 			default:
 //TODO: use this when we get a chance - http://www.w3schools.com/cssref/pr_text_white-space.asp ?
 				$additional = 'nowrap="nowrap"';
