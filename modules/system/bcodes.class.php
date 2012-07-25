@@ -14,48 +14,45 @@ class CSystem_Bcode extends w2p_Core_BaseObject
 
     public function __construct()
     {
-        parent::__construct('billingcode', 'billingcode_id');
+        parent::__construct('billingcode', 'billingcode_id', 'system');
     }
 
+    /*
+     * This very specifically does not call the parent::delete() because we
+     *    don't want to destroy the old data. We just want to deactivate the
+     *    billing code.
+     */
     public function delete()
     {
-        if ($this->_perms->checkModuleItem('system', 'delete')) {
+        $result = false;
+
+        if ($this->canDelete()) {
             $q = $this->_getQuery();
             $q->addTable('billingcode');
             $q->addUpdate('billingcode_status', '1');
             $q->addWhere('billingcode_id = ' . (int) $this->billingcode_id);
 
-            if (!$q->exec()) {
-                return db_error();
+            $result = $q->exec();
+            if(!$result) {
+                $this->_errors[] = db_error();
             }
-            return true;
         }
-        return false;
+        return $result;
     }
 
     public function store()
     {
         $stored = false;
 
-        $errorMsgArray = $this->check();
-
-        if (count($errorMsgArray) > 0) {
-            return $errorMsgArray;
-        }
-
-        if ($this->_perms->checkModuleItem('system', 'edit')) {
-            if (($msg = parent::store())) {
-                return $msg;
-            }
-            $stored = true;
+//TODO: Why isn't there a canCreate branch here?
+        if ($this->canEdit()) {
+            $stored = parent::store();
         }
         return $stored;
     }
 
-    public function check()
+    public function isValid()
     {
-        // ensure the integrity of some variables
-        $errorArray = array();
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
         $q = $this->_getQuery();
@@ -66,10 +63,10 @@ class CSystem_Bcode extends w2p_Core_BaseObject
 
         $found_id = $q->loadResult();
         if ($found_id && $found_id != $this->billingcode_id) {
-            $errorArray['billingcode_name'] = $baseErrorMsg . 'code already exists';
+            $this->_error['billingcode_name'] = $baseErrorMsg . 'code already exists';
         }
 
-        return $errorArray;
+        return (count($this->_error)) ? false : true;
     }
 
     public function getBillingCodes($company_id = -1, $activeOnly = true)
@@ -155,20 +152,6 @@ class CSystem_Bcode extends w2p_Core_BaseObject
         }
 
         return $results;
-    }
-
-}
-
-/**
- * @deprecated
- */
-class bcode extends CSystem_Bcode
-{
-
-    public function __construct()
-    {
-        parent::__construct();
-        trigger_error("bcode has been deprecated in v3.0 and will be removed by v4.0. Please use CSystem_Bcode instead.", E_USER_NOTICE);
     }
 
 }

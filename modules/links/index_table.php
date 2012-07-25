@@ -4,6 +4,8 @@ if (!defined('W2P_BASE_DIR')) {
 }
 global $AppUI, $deny1, $canRead, $canEdit, $project_id, $task_id, $showProject, $tab;
 
+$tab = ($m == 'links') ? $tab-1 : -1;
+
 if ($task_id && !$project_id) {
     $task = new CTask;
     $task->load($task_id);
@@ -30,7 +32,7 @@ if (!isset($project_id)) {
 
 if ($canRead) {
 	$link = new CLink();
-	$links = $link->getProjectTaskLinksByCategory(null, $project_id, $task_id, $tab-1, $search);
+	$links = $link->getProjectTaskLinksByCategory(null, $project_id, $task_id, $tab, $search);
 } else {
 	$AppUI->redirect('m=public&a=access_denied');
 }
@@ -41,30 +43,31 @@ $xpg_min = $xpg_pagesize * ($page - 1); // This is where we start our record set
 $xpg_totalrecs = count($links);
 $pageNav = buildPaginationNav($AppUI, $m, $tab, $xpg_totalrecs, $xpg_pagesize, $page);
 echo $pageNav;
+
+$fieldList = array();
+$fieldNames = array();
+
+$module = new w2p_Core_Module();
+$fields = $module->loadSettings('links', 'index_list');
+
+if (count($fields) > 0) {
+    $fieldList = array_keys($fields);
+    $fieldNames = array_values($fields);
+} else {
+    // TODO: This is only in place to provide an pre-upgrade-safe
+    //   state for versions earlier than v3.0
+    //   At some point at/after v4.0, this should be deprecated
+    $fieldList = array('link_name', 'link_description', 'link_category', 'link_task', 'contact_name', 'link_date');
+    $fieldNames = array('Link Name', 'Description', 'Category', 'Task Name', 'Owner', 'Date');
+
+    $module->storeSettings('links', 'index_list', $fieldList, $fieldNames);
+}
 ?>
 <table width="100%" border="0" cellpadding="2" cellspacing="1" class="tbl list">
     <tr>
         <?php
-        $fieldList = array();
-        $fieldNames = array();
-
-        $module = new w2p_Core_Module();
-        $fields = $module->loadSettings('links', 'index_list');
-
-        if (count($fields) > 0) {
-            $fieldList = array_keys($fields);
-            $fieldNames = array_values($fields);
-        } else {
-            // TODO: This is only in place to provide an pre-upgrade-safe 
-            //   state for versions earlier than v3.0
-            //   At some point at/after v4.0, this should be deprecated
-            $fieldList = array('link_name', 'link_description', 'link_category', 'link_task', 'link_owner', 'link_date');
-            $fieldNames = array('Link Name', 'Description', 'Category', 'Task Name', 'Owner', 'Date');
-
-            $module->storeSettings('links', 'index_list', $fieldList, $fieldNames);
-        }
 //TODO: The link below is commented out because this module doesn't support sorting... yet.
-        echo '<th></th>';
+        echo '<th></th><th></th>';
         foreach ($fieldNames as $index => $name) {
             ?><th nowrap="nowrap">
 <!--                <a href="?m=links&orderby=<?php echo $fieldList[$index]; ?>" class="hdr">-->
@@ -112,6 +115,7 @@ for ($i = ($page - 1) * $xpg_pagesize; $i < $page * $xpg_pagesize && $i < $xpg_t
         <?php if ($canEdit) {
             echo '<a href="./index.php?m=' . $m . '&a=addedit&link_id=' . $row['link_id'] . '">' . w2PshowImage('icons/stock_edit-16.png', '16', '16') . '</a>';
         }
+        echo '</td><td width="20">';
         echo '<a href="' . $row['link_url'] . '" target="_blank">' . w2PshowImage('forward.png', '16', '16') . '</a>';
         ?>
         </td>

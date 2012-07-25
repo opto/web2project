@@ -34,21 +34,18 @@ class CForum extends w2p_Core_BaseObject
         parent::__construct('forums', 'forum_id');
     }
 
-    public function check()
+    public function isValid()
     {
-        // ensure the integrity of some variables
-        $errorArray = array();
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
         if ('' == trim($this->forum_name)) {
-            $errorArray['forum_name'] = $baseErrorMsg . 'forum name is not set';
+            $this->_error['forum_name'] = $baseErrorMsg . 'forum name is not set';
         }
         if (0 == (int) $this->forum_owner) {
-            $errorArray['forum_owner'] = $baseErrorMsg . 'forum owner is not set';
+            $this->_error['forum_owner'] = $baseErrorMsg . 'forum owner is not set';
         }
 
-        $this->_error = $errorArray;
-        return $errorArray;
+        return (count($this->_error)) ? false : true;
     }
 
     public function getMessages($AppUI = null, $forum_id = 0, $message_id = 0, $sortDir = 'asc')
@@ -156,56 +153,40 @@ class CForum extends w2p_Core_BaseObject
     {
         $stored = false;
 
-        $this->_error = $this->check();
-
-        if (count($this->_error)) {
-            return $this->_error;
+        if ($this->{$this->_tbl_key} && $this->canEdit()) {
+            $stored = parent::store();
         }
-
-        if ($this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'edit', $this->{$this->_tbl_key})) {
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
-        }
-        if (0 == $this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'add')) {
+        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
             $this->forum_create_date = $this->_AppUI->convertToSystemTZ($this->forum_create_date);
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+            $stored = parent::store();
         }
         return $stored;
     }
 
     public function delete()
     {
-        if ($this->_perms->checkModuleItem($this->_tbl_module, 'delete', $this->{$this->_tbl_key})) {
-            $q = $this->_getQuery();
-            $q->setDelete('forum_visits');
-            $q->addWhere('visit_forum = ' . (int) $this->forum_id);
-            $q->exec(); // No error if this fails, it is not important.
+        $result = false;
 
-            $q->clear();
+        if ($this->canDelete()) {
+            $q = $this->_getQuery();
             $q->setDelete('forum_messages');
             $q->addWhere('message_forum = ' . (int) $this->forum_id);
-            if ($q->exec()) {
-                $result = null;
-            } else {
-                $result = db_error();
-                $this->_error['delete-messages'] = $result;
-                return $result;
+            if (!$q->exec()) {
+                $this->_error['delete-messages'] = db_error();
+                return false;
             }
-            $q->clear();
 
-            if ($msg = parent::delete()) {
-                return $msg;
-            }
-            return true;
+            $result = parent::delete();
         }
-        return false;
+        return $result;
+    }
+
+    protected function hook_preDelete()
+    {
+        $q = $this->_getQuery();
+        $q->setDelete('forum_visits');
+        $q->addWhere('visit_forum = ' . (int) $this->forum_id);
+        $q->exec();
     }
 
     public function getAllowedRecords($uid, $fields = '*', $orderby = '', $index = null, $extra = null)

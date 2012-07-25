@@ -90,11 +90,6 @@ class CContact extends w2p_Core_BaseObject
             $this->contact_display_name = mb_trim($this->contact_first_name . ' ' . $this->contact_last_name);
         }
 
-        $this->_error = $this->check();
-        if (count($this->_error)) {
-            return $this->_error;
-        }
-
         $q = $this->_getQuery();
         $this->contact_lastupdate = $q->dbfnNowWithTZ();
         /*
@@ -102,20 +97,12 @@ class CContact extends w2p_Core_BaseObject
          *   don't have a good idea on how to fix it at the moment...
          */
         
-        if ($this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'edit', $this->{$this->_tbl_key})) {
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+        if ($this->{$this->_tbl_key} && $this->canEdit()) {
+            $stored = parent::store();
         }
 
-        if (0 == $this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'add')) {
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
+            $stored = parent::store();
         }
 
         return $stored;
@@ -208,39 +195,37 @@ class CContact extends w2p_Core_BaseObject
         return $results;
     }
 
-    public function delete()
+    public function isValid()
     {
-        //if ($this->_perms->checkModuleItem($this->_tbl_module, 'delete', $this->{$this->_tbl_key})) {
-        if ($msg = parent::delete()) {
-            return $msg;
-        }
-        return true;
-        //}
-        //return false;
-    }
-
-    public function check()
-    {
-        $errorArray = array();
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
-        // we *need* a first name, that's the rule later on for the ACL checks
-        // fixes #980
         if(mb_strlen($this->contact_first_name) <= 1) {
-            $errorArray['contact_first_name'] = $baseErrorMsg . 'contact first name is not set';
+            $this->_error['contact_first_name'] = $baseErrorMsg . 'contact first name is not set';
         }
         
         if(mb_strlen($this->contact_display_name) <= 1) {
-            $errorArray['contact_display_name'] = $baseErrorMsg . 'contact display name is not set';
+            $this->_error['contact_display_name'] = $baseErrorMsg . 'contact display name is not set';
         }
         if (0 == (int) $this->contact_owner) {
-            $errorArray['contact_owner'] = $baseErrorMsg . 'contact owner is not set';
+            $this->_error['contact_owner'] = $baseErrorMsg . 'contact owner is not set';
         }
 
-        $this->_error = $errorArray;
-        return $errorArray;
+        return (count($this->_error)) ? false : true;
     }
 
+    public function canEdit()
+    {
+        $thisCanEdit = false;
+        $baseCanEdit = parent::canEdit();
+
+        $tmp = new CContact();
+        $tmp->load($this->contact_id);
+        if (!$tmp->contact_private || ($tmp->contact_private && ($tmp->contact_owner == $this->_AppUI->user_id))) {
+            $thisCanEdit = true;
+        }
+
+        return ($thisCanEdit && $baseCanEdit);
+    }
     public function canDelete($msg = '', $oid = null, $joins = null)
     {
         $tables[] = array('label' => 'Users', 'name' => 'users', 'idfield' => 'user_id', 'joinfield' => 'user_contact');
@@ -325,7 +310,7 @@ class CContact extends w2p_Core_BaseObject
     {
         $result = $this->loadAll('contact_id', 'contact_id = ' . (int) $this->contact_id);
 
-        return $result[$this->contact_id];
+        return $result[$this->contact_id]['contact_updatekey'];
     }
 
     public function clearUpdateKey()
@@ -338,6 +323,7 @@ class CContact extends w2p_Core_BaseObject
 
     public function notify()
     {
+        $result = false;
         global $w2Pconfig, $locale_char_set;
         $df = $this->_AppUI->getPref('SHDATEFORMAT');
         $df .= ' ' . $this->_AppUI->getPref('TIMEFORMAT');
@@ -354,9 +340,12 @@ class CContact extends w2p_Core_BaseObject
 
         if ($mail->ValidEmail($this->contact_email)) {
             $mail->To($this->contact_email, true);
-            $mail->Send();
+            $result = $mail->Send();
+        } else {
+            $this->_error['email_address'] = 'This is not a validate email address';
         }
-        return '';
+
+        return $result;
     }
 
     public function updateNotify()

@@ -79,7 +79,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
          *                                           ~ caseydk 27 Dec 2011
          */
         global $AppUI;
-        $this->_AppUI = $AppUI;
+        $this->_AppUI = is_null($AppUI) ? new w2p_Core_CAppUI() : $AppUI;
         $this->_perms = $this->_AppUI->acl();
 
         /*
@@ -111,7 +111,9 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
      */
     public function overrideDatabase($override)
     {
-        $this->_query = $override;
+        if (!is_null($override)) {
+            $this->_query = $override;
+        }
     }
 
     /**
@@ -246,9 +248,23 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
      */
     public function check()
     {
-        return $this->_error;
+        $this->isValid();
+
+        return $this->getError();
     }
 
+    /*
+     * This function does just what you think it does. The nice thing is that
+     *    since it always returns a boolean (storing the errors in the
+     *    $this->_errors, we can make decisions based on it even if we don't
+     *    care about the errors.
+     * 
+     * @return boolean
+     */
+    public function isValid()
+    {
+        return true;
+    }
     /**
      * 	Clone the current record
      *
@@ -292,48 +308,66 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
      * 	Inserts a new row if id is zero or updates an existing row in the database table
      *
      * 	Can be overloaded/supplemented by the child class
-     * 	@return null|string null if successful otherwise returns and error message
+     * 	@return boolean - true if successful otherwise false, errors 
      */
     public function store($updateNulls = false)
     {
-        $k = $this->_tbl_key;
+        $result = false;
+        $this->clearErrors();
 
-        // NOTE: I don't particularly like this but it wires things properly.
         $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'preStoreEvent'));
-        $event = ($this->$k) ? 'Update' : 'Create';
-        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'pre' . $event . 'Event'));
 
         $this->w2PTrimAll();
 
-        // NOTE: This is *very* similar to the store() flow within delete()..
-        $this->_error = $this->check();
-        if (count($this->_error)) {
-            $msg = get_class($this) . '::store-check failed';
-            $this->_error['store-check'] = $msg;
-            return $msg;
+        if (!$this->isValid()) {
+            return false;
         }
 
         $k = $this->_tbl_key;
+        // NOTE: I don't particularly like this but it wires things properly.
+        $event = ($this->$k) ? 'Update' : 'Create';
+        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'pre' . $event . 'Event'));
+
+        $k = $this->_tbl_key;
         $q = $this->_getQuery();
-        if ($this->$k) {
+
+        /*
+         * Note that we have to check and perform the edit *first* because the
+         *    create/add fills in the id that we're checking. Therefore, if we
+         *    did the create/add first, we'd have a valid id and then we'd
+         *    *always* immediately do an update on the object we just created.
+         */
+        if ($this->$k && $this->canEdit()) {
             $store_type = 'update';
-            $ret = $q->updateObject($this->_tbl, $this, $this->_tbl_key, $updateNulls);
-        } else {
+            $result = $q->updateObject($this->_tbl, $this, $this->_tbl_key, $updateNulls);
+        }
+        if (0 == $this->$k && $this->canCreate()) {
             $store_type = 'add';
-            $ret = $q->insertObject($this->_tbl, $this, $this->_tbl_key);
+            $result = $q->insertObject($this->_tbl, $this, $this->_tbl_key);
         }
 
-        if ($ret) {
-            $result = null;
+        if ($result) {
             // NOTE: I don't particularly like how the name is generated but it wires things properly.
             $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'post' . $event . 'Event'));
             $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postStoreEvent'));
         } else {
-            $result = db_error();
-            $this->_error['store'] = $result;
+            $this->_error['store'] = db_error();
         }
 
         return $result;
+    }
+
+    public function canAccess() {
+        return $this->_perms->checkModuleItem($this->_tbl_module, 'access');
+    }
+    public function canCreate() {
+        return $this->_perms->checkModuleItem($this->_tbl_module, 'add');
+    }
+    public function canEdit() { 
+        return $this->_perms->checkModuleItem($this->_tbl_module, 'edit', $this->{$this->_tbl_key});
+    }
+    public function canView() {
+        return $this->_perms->checkModuleItem($this->_tbl_module, 'view', $this->{$this->_tbl_key});
     }
 
     /**
@@ -347,13 +381,11 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
      */
     public function canDelete(&$msg = '', $oid = null, $joins = null)
     {
-        $result = true;
+        $result = false;
 
         // First things first.  Are we allowed to delete?
-        $acl = &$this->_AppUI->acl();
-        if (!$acl->checkModuleItem($this->_tbl_module, 'delete', $oid)) {
-            $msg = $this->_AppUI->_('noDeletePermission');
-            $this->_error['noDeletePermission'] = $msg;
+        if (!$this->_perms->checkModuleItem($this->_tbl_module, 'delete', $oid)) {
+            $this->_error['noDeletePermission'] = $this->_AppUI->_('noDeletePermission');
             return false;
         }
 
@@ -373,12 +405,10 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
                 $q->addQuery('COUNT(DISTINCT ' . $table['idfield'] . ') AS ' . $table['idfield']);
                 $q->addJoin($table['name'], $table['name'], $table['joinfield'] . ' = ' . $k);
             }
-            $obj = new stdClass();
-            $q->loadObject($obj);
 
+            $obj = (object) $q->loadHash();
             if (!$obj && '' != db_error()) {
-                $msg = db_error();
-                $this->_error['db_error'] = $msg;
+                $this->_error['db_error'] = db_error();
                 return false;
             }
             $msg = array();
@@ -419,28 +449,29 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
      */
     public function delete($oid = null)
     {
-        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'preDeleteEvent'));
         $result = false;
+        $this->clearErrors();
 
         $k = $this->_tbl_key;
         if ($oid) {
             $this->$k = intval($oid);
         }
 
-        // NOTE: This is *very* similar to the check() flow within store()..
-        $this->canDelete();
-        if (count($this->_error)) {
-            $msg = get_class($this) . '::delete-check failed';
+        if (!$this->canDelete()) {
             //TODO: no clue why this is required..
             unset($this->_error['store']);
-            $this->_error['delete-check'] = $msg;
+            $this->_error['delete-check'] = get_class($this) . '::delete-check failed';
+            return false;
         }
+
+        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'preDeleteEvent'));
 
         $q = $this->_getQuery();
         $q->setDelete($this->_tbl);
         $q->addWhere($this->_tbl_key . ' = \'' . $this->$k . '\'');
-        if ($q->exec()) {
-            $result = true;
+        $result = $q->exec();
+
+        if ($result) {
             $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postDeleteEvent'));
         } else {
             $this->_error['delete'] = db_error();

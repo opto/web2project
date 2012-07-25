@@ -46,6 +46,26 @@ class CDepartment extends w2p_Core_BaseObject {
 		$q->loadObject($this);
 	}
 
+    /*
+     * I already don't like this one..
+     *
+     * @deprecated
+     */
+    public function getProjects($department_id)
+    {
+        $q = $this->_getQuery();
+		$q->addTable('projects', 'p');
+        $q->addQuery('p.project_id, company_id');
+		$q->addQuery('project_color_identifier, project_percent_complete, project_priority, project_name,
+            company_name, project_start_date, project_scheduled_hours, project_owner,
+            project_end_date, project_actual_end_date, project_task_count, project_status, project_scheduled_hours');
+        $q->addJoin('companies', 'c', 'company_id = project_company');
+        $q->addJoin('project_departments', 'd', 'd.project_id = p.project_id');
+        $q->addWhere('department_id = ' . (int) $department_id);
+
+        return $q->loadList();
+    }
+
 	public function loadOtherDepts($AppUI = null, $company_id, $removeDeptId = 0) {
         $results = array();
         $q = $this->_getQuery();
@@ -100,81 +120,61 @@ class CDepartment extends w2p_Core_BaseObject {
         return $q->loadList();
 	}
 
-	public function check() {
-            $errorArray = array();
-            $baseErrorMsg = get_class($this) . '::store-check failed - ';
+    public function isValid()
+    {
+        $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
-            if (0 == (int) $this->dept_company) {
-                $errorArray['dept_company'] = $baseErrorMsg . 'department company is not set';
-            }
-            if ('' == trim($this->dept_name)) {
-                $errorArray['dept_name'] = $baseErrorMsg . 'department name is not set';
-            }
-            if (0 != $this->dept_id && $this->dept_id == $this->dept_parent) {
-                $errorArray['parentError'] = $baseErrorMsg . 'a department cannot be its own parent';
-            }
-            if (0 == (int) $this->dept_owner) {
-                $errorArray['dept_owner'] = $baseErrorMsg . 'department owner is not set';
-            }
+        if (0 == (int) $this->dept_company) {
+            $this->_error['dept_company'] = $baseErrorMsg . 'department company is not set';
+        }
+        if ('' == trim($this->dept_name)) {
+            $this->_error['dept_name'] = $baseErrorMsg . 'department name is not set';
+        }
+        if (0 != $this->dept_id && $this->dept_id == $this->dept_parent) {
+            $this->_error['parentError'] = $baseErrorMsg . 'a department cannot be its own parent';
+        }
+        if (0 == (int) $this->dept_owner) {
+            $this->_error['dept_owner'] = $baseErrorMsg . 'department owner is not set';
+        }
 
-            $this->_error = $errorArray;
-            return $errorArray;
-	}
+        return (count($this->_error)) ? false : true;
+    }
 
 	public function store() {
         $stored = false;
 
-        $this->_error = $this->check();
-
-        if (count($this->_error)) {
-            return $this->_error;
-        }
-
-        if ($this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'edit', $this->{$this->_tbl_key})) {
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+        if ($this->{$this->_tbl_key} && $this->canEdit()) {
+            $stored = parent::store();
 		}
-        if (0 == $this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'add')) {
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+
+        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
+            $stored = parent::store();
 		}
         return $stored;
 	}
 
-	public function delete() {
-        if ($this->_perms->checkModuleItem($this->_tbl_module, 'delete', $this->{$this->_tbl_key})) {
-
-            $rows = $this->loadAll(null, 'dept_parent = '. (int)$this->dept_id);
-            if (count($rows)) {
-                $this->_error['deptWithSub'] = 'deptWithSub';
-                return 'deptWithSub';
-            }
-
-            $q = $this->_getQuery();
-            $q->addTable('project_departments', 'pd');
-            $q->addQuery('pd.project_id');
-            $q->addWhere('pd.department_id = ' . (int)$this->dept_id);
-            $rows = $q->loadList();
-            $q->clear();
-
-            if (count($rows)) {
-                $this->_error['deptWithProject'] = 'deptWithProject';
-                return 'deptWithProject';
-            }
-
-            if ($msg = parent::delete()) {
-                return $msg;
-            }
-            return true;
+    public function canDelete()
+    {
+        $rows = $this->loadAll('dept_id', 'dept_parent = '. (int)$this->dept_id);
+        if (count($rows)) {
+            $this->_error['deptWithSub'] = 'deptWithSub';
+            return false;
         }
-        return false;
-	}
+
+        $q = $this->_getQuery();
+        $q->addTable('project_departments', 'pd');
+        $q->addQuery('pd.project_id');
+        $q->addWhere('pd.department_id = ' . (int)$this->dept_id);
+        $rows = $q->loadList();
+
+        if (count($rows)) {
+            $this->_error['deptWithProject'] = 'deptWithProject';
+            return false;
+        }
+
+        return true;
+    }
+
 	/**
 	 *	Returns a list of records exposed to the user
 	 *	@param int User id number

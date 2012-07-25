@@ -18,7 +18,7 @@ class CFile_Folder extends w2p_Core_BaseObject {
 	public $file_folder_description = null;
 
 	public function __construct() {
-        parent::__construct('file_folders', 'file_folder_id');
+        parent::__construct('file_folders', 'file_folder_id', 'files');
 	}
 
 	public function getAllowedRecords($uid) {
@@ -30,29 +30,15 @@ class CFile_Folder extends w2p_Core_BaseObject {
 		return $q->loadHashList();
 	}
 
-	public function delete() {
-//TODO: this is an oddball permissions object where the module doesn't determine the access..
-        if ($this->_perms->checkModuleItem('files', 'delete', $this->{$this->_tbl_key})) {
-            if ($msg = parent::delete()) {
-                return $msg;
-            }
-            return true;
-        }
-        return false;
-	}
-
 	public function canDelete($msg, $oid = 0, $joins = null) {
-        $msg = array();
-
 		$q = $this->_getQuery();
 		$q->addTable('file_folders');
 		$q->addQuery('COUNT(DISTINCT file_folder_id) AS num_of_subfolders');
 		$q->addWhere('file_folder_parent=' . $oid);
 		$res1 = $q->loadResult();
 		if ($res1) {
-			$msg[] = "Can't delete folder, it has subfolders.";//') . ': ' . implode(', ', $msg);
+            $this->_error['subfolders'] = "Can't delete folder, it has subfolders.";
 		}
-		$q->clear();
 
 		$q = $this->_getQuery();
 		$q->addTable('files');
@@ -60,12 +46,22 @@ class CFile_Folder extends w2p_Core_BaseObject {
 		$q->addWhere('file_folder=' . $oid);
 		$res2 = $q->loadResult();
 		if ($res2) {
-			$msg[] = "Can't delete folder, it has files within it.";//') . ': ' . implode(', ', $msg);
+            $this->_error['files'] = "Can't delete folder, it has files within it.";
 		}
 
-		return $msg;
+		return (count($this->_error)) ? false : true;
 	}
 
+    public function isValid()
+    {
+        $baseErrorMsg = get_class($this) . '::store-check failed - ';
+
+        if ('' == trim($this->file_folder_name)) {
+            $this->_error['file_folder_name'] = $baseErrorMsg . 'folder name is not set';
+        }
+
+        return (count($this->_error)) ? false : true;
+    }
 
     public function store() {
         $stored = false;
@@ -73,30 +69,16 @@ class CFile_Folder extends w2p_Core_BaseObject {
         $this->file_folder_id = (int) $this->file_folder_id;
 		$this->file_folder_parent = (int) $this->file_folder_parent;
 
-        $this->_error = $this->check();
-
-        if (count($this->_error)) {
-            return $this->_error;
-        }
-
         /*
          * TODO: I don't like the duplication on each of these two branches, but I
          *   don't have a good idea on how to fix it at the moment...
          */
 //TODO: this is an oddball permissions object where the module doesn't determine the access..
-        if ($this->{$this->_tbl_key} && $this->_perms->checkModuleItem('files', 'edit', $this->{$this->_tbl_key})) {
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+        if ($this->{$this->_tbl_key} && $this->canEdit()) {
+            $stored = parent::store();
         }
-        if (0 == $this->{$this->_tbl_key} && $this->_perms->checkModuleItem('files', 'add')) {
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
+            $stored = parent::store();
         }
         return $stored;
     }
@@ -178,17 +160,5 @@ class CFile_Folder extends w2p_Core_BaseObject {
         $q->addOrder('file_folder_name');
 
         return $q->loadList();
-    }
-}
-
-/**
- * @deprecated
- */
-class CFileFolder extends CFile_Folder
-{
-    public function __construct()
-    {
-        parent::__construct();
-        trigger_error("CFileFolder has been deprecated in v3.0 and will be removed by v4.0. Please use CFile_Folder instead.", E_USER_NOTICE );
     }
 }

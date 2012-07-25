@@ -40,33 +40,16 @@ function is_task_in_gantt_arr($task) {
     return false;
 }
 
-function notifyNewExternalUser($address, $username, $logname, $logpwd) {
-	global $AppUI;
-	$mail = new w2p_Utilities_Mail();
-	if ($mail->ValidEmail($address)) {
-		if ($mail->ValidEmail($AppUI->user_email)) {
-			$email = $AppUI->user_email;
-		} else {
-			$email = 'web2project@web2project.net';
-		}
-
-		$mail->To($address);
-        $emailManager = new w2p_Output_EmailManager($AppUI);
-        $body = $emailManager->notifyNewExternalUser($logname, $logpwd);
-		$mail->Subject('New Account Created');
-        $mail->Body($body);
-		$mail->Send();
-	}
-}
-
 function notifyHR($address, $username, $uaddress, $uusername, $logname, $logpwd, $userid) {
 	global $AppUI;
 	$mail = new w2p_Utilities_Mail();
 	if ($mail->ValidEmail($address)) {
-		if ($mail->ValidEmail($AppUI->user_email)) {
+//TODO: why aren't we actually using this $email variable?
+        if ($mail->ValidEmail($AppUI->user_email)) {
 			$email = $AppUI->user_email;
 		} else {
-			$email = 'web2project@web2project.net';
+//TODO: this email should be set to something sane
+            $email = 'web2project@web2project.net';
 		}
 
 		$mail->To($address);
@@ -78,33 +61,16 @@ function notifyHR($address, $username, $uaddress, $uusername, $logname, $logpwd,
 	}
 }
 
-function notifyNewUser($address, $username) {
-	global $AppUI;
-	$mail = new w2p_Utilities_Mail();
-	if ($mail->ValidEmail($address)) {
-		if ($mail->ValidEmail($AppUI->user_email)) {
-			$email = $AppUI->user_email;
-		} else {
-			return false;
-		}
-
-		$mail->To($address);
-        $emailManager = new w2p_Output_EmailManager($AppUI);
-        $body = $emailManager->getNotifyNewUser($username);
-        $mail->Subject('New Account Created');
-		$mail->Body($body);
-		$mail->Send();
-	}
-}
-
 function notifyNewUserCredentials($address, $username, $logname, $logpwd) {
 	global $AppUI, $w2Pconfig;
 	$mail = new w2p_Utilities_Mail();
 	if ($mail->ValidEmail($address)) {
-		if ($mail->ValidEmail($AppUI->user_email)) {
+//TODO: why aren't we actually using this $email variable?
+        if ($mail->ValidEmail($AppUI->user_email)) {
 			$email = $AppUI->user_email;
 		} else {
-			$email = "web2project@" . $AppUI->cfg['site_domain'];
+//TODO: this email should be set to something sane
+            $email = "web2project@" . $AppUI->cfg['site_domain'];
 		}
 
 		$mail->To($address);
@@ -430,14 +396,18 @@ function showtask(&$arr, $level = 0, $is_opened = true, $today_view = false, $hi
 	global $AppUI, $query_string, $durnTypes, $userAlloc, $showEditCheckbox;
 	global $m, $a, $history_active, $expanded;
 
-    $htmlHelper = new w2p_Output_HTMLHelper($AppUI);
-    $htmlHelper->df .= ' ' . $AppUI->getPref('TIMEFORMAT');
-
 	//Check for Tasks Access
-	$canAccess = canTaskAccess($arr['task_id'], $arr['task_access'], $arr['task_owner']);
+	$canAccess = canTaskAccess($arr['task_id']);
 	if (!$canAccess) {
 		return (false);
 	}
+
+    $htmlHelper = new w2p_Output_HTMLHelper($AppUI);
+    $htmlHelper->df .= ' ' . $AppUI->getPref('TIMEFORMAT');
+    
+    // Reformat time strings to take timezones into account
+    $startDateStr = $AppUI->formatTZAwareTime($arr['task_start_date'], '%Y-%m-%d %T');
+    $endDateStr = $AppUI->formatTZAwareTime($arr['task_end_date'], '%Y-%m-%d %T');
 
 	$show_all_assignees = w2PgetConfig('show_all_task_assignees', false);
 
@@ -547,9 +517,9 @@ function showtask(&$arr, $level = 0, $is_opened = true, $today_view = false, $hi
 		$s .= '<td align="center">-</td>';
 	}
 	// duration or milestone
-    $s .= $htmlHelper->createCell('task_start_date', $arr['task_start_date']);
+    $s .= $htmlHelper->createCell('task_start_datetime', $arr['task_start_date']);
     $s .= $htmlHelper->createCell('task_duration', $arr['task_duration'] . ' ' . mb_substr($AppUI->_($durnTypes[$arr['task_duration_type']]), 0, 1));
-    $s .= $htmlHelper->createCell('task_end_date', $arr['task_end_date']);
+    $s .= $htmlHelper->createCell('task_end_datetime', $arr['task_end_date']);
 	if ($today_view) {
         $s .= $htmlHelper->createCell('task_due_in', $arr['task_due_in']);
 	} elseif ($history_active) {
@@ -569,6 +539,12 @@ function showtask(&$arr, $level = 0, $is_opened = true, $today_view = false, $hi
 function showtask_pd(&$arr, $level = 0, $today_view = false) {
 	global $AppUI, $w2Pconfig, $done, $query_string, $durnTypes, $userAlloc, $showEditCheckbox;
 	global $task_access, $task_priority, $PROJDESIGN_CONFIG, $m, $expanded;
+
+	//Check for Tasks Access
+	$canAccess = canTaskAccess($arr['task_id']);
+	if (!$canAccess) {
+		return (false);
+	}
 
     $htmlHelper = new w2p_Output_HTMLHelper($AppUI);
     $htmlHelper->df .= ' ' . $AppUI->getPref('TIMEFORMAT');
@@ -724,6 +700,12 @@ function showtask_pd(&$arr, $level = 0, $today_view = false) {
 function showtask_pr(&$arr, $level = 0, $today_view = false) {
 	global $AppUI, $w2Pconfig, $done, $query_string, $durnTypes, $userAlloc, $showEditCheckbox;
 	global $task_access, $task_priority;
+
+	//Check for Tasks Access
+	$canAccess = canTaskAccess($arr['task_id']);
+	if (!$canAccess) {
+		return (false);
+	}
 
     $htmlHelper = new w2p_Output_HTMLHelper($AppUI);
     $htmlHelper->df .= ' ' . $AppUI->getPref('TIMEFORMAT');
@@ -962,63 +944,15 @@ function sort_by_item_title($title, $item_name, $item_type, $a = '') {
  * @param mixed $task_owner
  * @return true if user has task access to it, or false if he doesn't
  */
-function canTaskAccess($task_id, $task_access, $task_owner) {
-	global $AppUI;
-	$q = new w2p_Database_Query;
+function canTaskAccess($task_id, $task_access = 0, $task_owner = 0) {
+    //trigger_error("canTaskAccess has been deprecated in v3.0 and will be removed by v4.0. Please use CTask->canAccess() instead.", E_USER_NOTICE);
 
-	if (!$task_id || !isset($task_access)) {
-		return false;
-	}
+    global $AppUI;
 
-	//if for some weird reason we have tasks without an owner, lets make them visible at least for admins, or else we take the risk of having phantom tasks.
-	if (!$task_owner) {
-		$task_owner = $AppUI->user_id;
-	}
+    $task = new CTask();
+    $task->load($task_id);
 
-	$user_id = $AppUI->user_id;
-	// Let's see if this user has admin privileges, if so return true
-	if ($AppUI->user_is_admin) {
-		return true;
-	}
-
-	switch ($task_access) {
-		case 0:
-			// public
-			$retval = true;
-			break;
-		case 1:
-			// protected
-			$q->addTable('users');
-			$q->addQuery('user_company');
-			$q->addWhere('user_id=' . (int)$user_id . ' OR user_id=' . (int)$task_owner);
-			$user_owner_companies = $q->loadColumn();
-			$q->clear();
-			$company_match = true;
-			foreach ($user_owner_companies as $current_company) {
-				$company_match = $company_match && ((!(isset($last_company))) || $last_company == $current_company);
-				$last_company = $current_company;
-			}
-
-		case 2:
-			// participant
-			$company_match = ((isset($company_match)) ? $company_match : true);
-			$q->addTable('user_tasks');
-			$q->addQuery('COUNT(task_id)');
-			$q->addWhere('user_id=' . (int)$user_id . ' AND task_id=' . (int)$task_id);
-			$count = $q->loadResult();
-			$q->clear();
-			$retval = (($company_match && $count > 0) || ($count > 0) || $task_owner == $user_id);
-			break;
-		case 3:
-			// private
-			$retval = ($task_owner == $user_id);
-			break;
-		default:
-			$retval = false;
-			break;
-	}
-
-	return $retval;
+    return $task->canAccess($AppUI->user_id);
 }
 
 // from modules/tasks/tasksperuser_sub.php
@@ -2109,6 +2043,10 @@ function displayFiles($AppUI, $folder_id, $task_id, $project_id, $company_id) {
 	if ($company_id) {
 		$q->addWhere('project_company = ' . (int)$company_id);
 	}
+    $tab = ($m == 'files') ? $tab-1 : -1;
+    if ($tab >= 0) {
+        $q->addWhere('file_category = ' . (int)$tab);
+    }
 	$q->setLimit($xpg_pagesize, $xpg_min);
     if ($folder_id > -1) {
         $q->addWhere('file_folder = ' . (int)$folder_id);
@@ -2140,6 +2078,9 @@ function displayFiles($AppUI, $folder_id, $task_id, $project_id, $company_id) {
 	if ($company_id) {
 		$qv->addWhere('project_company = ' . (int)$company_id);
 	}
+    if ($tab >= 0) {
+        $qv->addWhere('file_category = ' . (int)$tab);
+    }
 	$qv->leftJoin('users', 'cu', 'cu.user_id = file_checkout');
 	$qv->leftJoin('contacts', 'co', 'co.contact_id = cu.user_contact');
 	$qv->addWhere('file_folder = ' . (int)$folder_id);
@@ -2249,7 +2190,7 @@ function displayFiles($AppUI, $folder_id, $task_id, $project_id, $company_id) {
         if ($row['file_versions'] > 1) {
             $version_link = '&nbsp<a href="javascript: void(0);" onClick="expand(\'versions_' . $latest_file['file_id'] . '\'); ">(' . $row['file_versions'] . ')</a>';
             $hidden_table = '<tr><td colspan="20">
-                <table style="display: none" id="versions_' . $latest_file['file_id'] . '" width="100%" border="0" cellpadding="2" cellspacing="1" class="tbl list">
+                <table style="display: none" id="versions_' . $latest_file['file_id'] . '" class="tbl list">
                 <tr>';
             foreach ($fieldNames as $index => $name) {
                 $hidden_table .= '<th nowrap="nowrap">';
@@ -2599,9 +2540,9 @@ function projects_list_data($user_id = false) {
 
 	$q->addTable('projects', 'pr');
 	$q->addQuery('pr.project_id, project_status, project_color_identifier,
-		project_type, project_name, project_description, project_scheduled_hours as project_duration,
+		project_type, project_name, project_description, project_scheduled_hours as project_duration, project_scheduled_hours,
 		project_parent, project_original_parent, project_percent_complete,
-		project_color_identifier, project_company, company_id, company_name, 
+		project_color_identifier, project_company, company_id, company_name,
         project_status, project_last_task as critical_task,
         tp.task_log_problem, user_username, project_active');
 

@@ -21,8 +21,6 @@ $df .= ' ' . $AppUI->getPref('TIMEFORMAT');
 // load the record data
 $msg = '';
 $contact = new CContact();
-$canDelete = $contact->canDelete($msg, $contact_id);
-$is_user = $contact->isUser($contact_id);
 
 $canEdit = $perms->checkModuleItem($m, 'edit', $contact_id);
 
@@ -34,6 +32,9 @@ if (!$contact->load($contact_id) && $contact_id > 0) {
 	// check only owner can edit
 	$AppUI->redirect('m=public&a=access_denied');
 }
+
+$canDelete = $contact->canDelete($msg, $contact_id);
+$is_user = $contact->isUser($contact_id);
 
 $countries = w2PgetSysVal('GlobalCountries');
 
@@ -69,15 +70,17 @@ $lastupdated = new w2p_Utilities_Date($contact->contact_lastupdate);
         <input type="hidden" name="contact_id" value="<?php echo $contact_id; ?>" />
         <input type="hidden" name="contact_owner" value="<?php echo $contact->contact_owner ? $contact->contact_owner : $AppUI->user_id; ?>" />
 </form>
+<?php if ($canDelete) { ?>
 <script language="javascript" type="text/javascript">
 function delIt(){
-        var form = document.changecontact;
-        if(confirm( '<?php echo $AppUI->_('contactsDelete', UI_OUTPUT_JS); ?>' )) {
-                form.del.value = '<?php echo $contact_id; ?>';
-                form.submit();
-        }
+	var form = document.changecontact;
+	if(confirm('<?php echo $AppUI->_('contactsDelete', UI_OUTPUT_JS); ?>')) {
+		form.del.value = '<?php echo $contact_id; ?>';
+		form.submit();
+	}
 }
 </script>
+<?php } ?>
 
 <table border="0" cellpadding="4" cellspacing="0" width="100%" class="std view">
 	<tr>
@@ -85,15 +88,24 @@ function delIt(){
 			<table border="0" cellpadding="1" cellspacing="1">
 				<tr>
 					<td align="right" nowrap="nowrap"><?php echo $AppUI->_('First Name'); ?>:</td>
-                    <?php echo $htmlHelper->createCell('contact_first_name', $contact->contact_first_name); ?>
+                    <?php
+
+                    // TODO HTMLhelper was confused renamed field name so HTMLhelper is sane...
+                    echo $htmlHelper->createCell('contact_firstname', $contact->contact_first_name); ?>
 				</tr>
 				<tr>
 					<td align="right" nowrap="nowrap">&nbsp;&nbsp;<?php echo $AppUI->_('Last Name'); ?>:</td>
-                    <?php echo $htmlHelper->createCell('contact_last_name', $contact->contact_last_name); ?>
+                    <?php
+
+                    // TODO HTMLhelper was confused renamed field name so HTMLhelper is sane...
+                    echo $htmlHelper->createCell('contact_lastname', $contact->contact_last_name); ?>
 				</tr>
 				<tr>
 					<td align="right" width="100"><?php echo $AppUI->_('Display Name'); ?>: </td>
-                    <?php echo $htmlHelper->createCell('contact_display_name', $contact->contact_display_name); ?>
+                    <?php
+
+                    // TODO HTMLhelper was confused renamed field name so HTMLhelper is sane...
+                    echo $htmlHelper->createCell('contact_displayname', $contact->contact_display_name); ?>
 				</tr>
 				<tr>
 					<td align="right"><?php echo $AppUI->_('Job Title'); ?>:</td>
@@ -111,7 +123,7 @@ function delIt(){
 				</tr>
 				<tr>
 					<td align="right" width="100"><?php echo $AppUI->_('Department'); ?>:</td>
-                    <?php echo $htmlHelper->createCell('dept_name', $dept_detail['dept_name']); ?>
+                    <?php echo $htmlHelper->createCell('contact_department', $contact->contact_department); ?>
 				</tr>
 				<tr>
 					<td align="right"><?php echo $AppUI->_('Title'); ?>:</td>

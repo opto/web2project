@@ -138,7 +138,7 @@ class w2p_Output_HTMLHelper
                 $obj = new CDepartment();
                 $obj->load($value);
                 $mod = substr($suffix, 1);
-                $link = '?m='. w2p_pluralize($mod) .'&a=view&'.$mod.'_id='.$value;
+                $link = '?m='. w2p_pluralize($mod) .'&a=view&dept_id='.$value;
                 $cell = '<a href="'.$link.'">'.$obj->dept_name.'</a>';
                 $suffix .= ' _name';
                 break;
@@ -174,6 +174,7 @@ class w2p_Output_HTMLHelper
                 $prefix = ($prefix == 'message')  ? 'forum' : $prefix;
                 $page   = ($prefix == 'forum') ? 'viewer&message_id='.$this->tableRowData['message_id'] : 'view';
                 $link   = ($prefix == 'file') ? 'fileviewer.php?' : '?m='. w2p_pluralize($prefix) .'&a='.$page.'&';
+                $link   = ($prefix == 'event') ? '?m=calendar&a='.$page.'&' : $link;
                 $prefix = ($prefix == 'department') ? 'dept' : $prefix;
                 $link  .= $prefix.'_id='.$this->tableRowData[$prefix.'_id'];
                 $link  .= ($prefix == 'task_log') ? '&tab=1&task_id='.$this->tableRowData['task_id'] : '';
@@ -183,20 +184,17 @@ class w2p_Output_HTMLHelper
 //TODO: task_logs are another oddball..
                 $cell = ($prefix == 'task_log') ? str_replace('task_logs', 'tasks', $cell) : $cell;
                 break;
-            case '_category':
-            case '_status':
-            case '_type':
-//TODO: another oddball
-                $cell = ($fieldName == 'file_type') ? $value : $custom[$fieldName][$value];
-                break;
             case '_author':
             case '_creator':
 			case '_owner':
             case '_updator':
-				$cell = $value;
-				break;
+                // The above are all contact/user display names, the below are numbers.
+            case '_count':
+            case '_duration':
+            case '_hours':
+                $cell = $value;
+                break;
             case '_size':
-                $additional = 'nowrap="nowrap"';
                 $cell = file_size($value);
                 break;
 			case '_budget':
@@ -211,7 +209,6 @@ class w2p_Output_HTMLHelper
                 break;
             case '_birthday':
 			case '_date':
-				$additional = 'nowrap="nowrap"';
                 $myDate = intval($value) ? new w2p_Utilities_Date($value) : null;
 				$cell = $myDate ? $myDate->format($this->df) : '-';
 				break;
@@ -233,12 +230,8 @@ class w2p_Output_HTMLHelper
                 break;
             case '_complete':
             case '_assignment':
+            case '_allocated':
                 $cell = $value.'%';
-                break;
-            case '_count':
-            case '_duration':
-            case '_hours':
-                $cell = $value;
                 break;
             case '_password':
                 $cell = '('.$this->_AppUI->_('hidden').')';
@@ -247,9 +240,23 @@ class w2p_Output_HTMLHelper
                 $value = (int) (100 * $value);
                 $cell = number_format($value/100, 2);
                 break;
+            case '_identifier':
+                $additional = 'style="background-color:#'.$value.'; color:'.bestColor($value).'"';
+                $cell = $this->tableRowData['project_percent_complete'].'%';
+                break;
+            case '_problem':
+                if ($value) {
+                    $cell  = '<a href="?m=tasks&a=index&f=all&project_id=' . $this->tableRowData['project_id'] . '">';
+                    $cell .= w2PshowImage('icons/dialog-warning5.png', 16, 16, 'Problem', 'Problem');
+                    $cell .= '</a>';
+                } else {
+                    $cell = '-';
+                }
+                break;
 			default:
 //TODO: use this when we get a chance - http://www.w3schools.com/cssref/pr_text_white-space.asp ?
 				$additional = 'nowrap="nowrap"';
+                $value = (isset($custom[$fieldName])) ? $custom[$fieldName][$value] : $value;
 				$cell = htmlspecialchars($value, ENT_QUOTES);
 		}
 

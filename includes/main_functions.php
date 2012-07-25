@@ -35,28 +35,35 @@ function w2p_autoload($class_name)
 
     $name = strtolower($class_name);
     switch ($name) {
-        case 'libmail':
-            // Deprecated as of v2.3, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/classes/mail.class.php';
+        case 'bcode':                   // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'budgets':                 // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'cappui':                  // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'ccalendar':               // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'cdate':                   // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'cfilefolder':             // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'cforummessage':           // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'cinfotabbox':             // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'cmonthcalendar':          // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'cprojectdesigneroptions': // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'crole':                   // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'csyskey':                 // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'csysval':                 // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'ctabbox_core':            // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'ctasklog':                // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'ctitleblock':             // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'ctitleblock_core':        // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'customfields':            // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'cw2pobject':              // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'dbquery':                 // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'libmail':                 // Deprecated as of v2.3, TODO: remove this in v4.0
+        case 'w2pacl':                  // Deprecated as of v3.0, TODO: remove this in v4.0
+        case 'w2pajaxresponse':         // Deprecated as of v3.0, TODO: remove this in v4.0
+            require_once W2P_BASE_DIR . '/classes/deprecated.class.php';
             break;
-        case 'w2pacl':
-            // Deprecated as of v3.0, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/classes/permissions.class.php';
-            break;
-        case 'cappui':
-            // Deprecated as of v3.0, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/classes/ui.class.php';
-            break;
+
+
         case 'xajax':
             require_once W2P_BASE_DIR . '/lib/xajax/xajax_core/xajax.inc.php';
-            break;
-        case 'w2pajaxresponse':
-            // Deprecated as of v3.0, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/classes/ajax.class.php';
-            break;
-        case 'ctitleblock':
-            // Deprecated as of v3.0, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/classes/w2p/Theme/TitleBlock.class.php';
             break;
 
         /*
@@ -72,43 +79,6 @@ function w2p_autoload($class_name)
             // Deprecated as of v3.0, TODO: remove this in v4.0
             require_once W2P_BASE_DIR . '/modules/admin/users.class.php';
             break;
-        case 'cfilefolder':
-            // Deprecated as of v3.0, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/modules/files/folders.class.php';
-            break;
-        case 'ctasklog':
-            // Deprecated as of v3.0, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/modules/tasks/tasklogs.class.php';
-            break;
-        case 'cforummessage':
-            // Deprecated as of v3.0, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/modules/forums/forummessage.class.php';
-            break;
-        case 'cprojectdesigneroptions':
-            // Deprecated as of v3.0, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/modules/projectdesigner/projectdesigner.class.php';
-            break;
-        case 'crole':
-            // Deprecated as of v3.0, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/modules/system/roles.class.php';
-            break;
-        case 'csyskey':
-            // Deprecated as of v3.0, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/modules/system/syskeys.class.php';
-            break;
-        case 'csysval':
-            // Deprecated as of v3.0, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/modules/system/sysvals.class.php';
-            break;
-        case 'bcode':
-            // Deprecated as of v3.0, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/modules/system/bcodes.class.php';
-            break;
-        case 'budgets':
-            // Deprecated as of v3.0, TODO: remove this in v4.0
-            require_once W2P_BASE_DIR . '/modules/system/budgets.class.php';
-            break;
-
         default:
             if (file_exists(W2P_BASE_DIR . '/classes/' . $name . '.class.php')) {
                 // Deprecated as of v3.0, TODO: remove this in v4.0
@@ -172,19 +142,25 @@ function arrayMerge($a1, $a2)
  * @param $default string The default value to return if the key not found.
  * @return The value of the setting, or the default value if not found.
  */
-function w2PgetConfig($key, $default = null)
+function w2PgetConfig($key, $default = null, $dbConn = null)
 {
     global $w2Pconfig, $AppUI;
 
     if (isset($w2Pconfig[$key])) {
         return $w2Pconfig[$key];
     } else {
-        if (!is_null($default)) {
-            $obj = new w2p_Core_Config();
-            $obj->config_name = $key;
-            $obj->config_value = $default;
-            $obj->store();
-        }
+//TODO: This block had to be removed because if the w2pgetConfig was called before
+//  we had a valid database object, creating the w2p_Core_Config object below would
+//  call its parent - w2p_Core_BaseObject - which would try to get an w2p_Core_AppUI
+//  which would in turn get back to here.. nasty loop.
+//
+//        if (!is_null($default)) {
+//            $obj = new w2p_Core_Config();
+//            $obj->overrideDatabase($dbConn);
+//            $obj->config_name = $key;
+//            $obj->config_value = $default;
+//            $obj->store();
+//        }
         return $default;
     }
 }
@@ -376,4 +352,47 @@ function w2p_textarea($content)
     }
 
     return $result;
+}
+
+function notifyNewExternalUser($emailAddress, $username, $logname, 
+        $logpwd, $emailUtility = null) {
+
+    global $AppUI;
+	$mail = (!is_null($emailUtility)) ? $emailUtility : new w2p_Utilities_Mail();
+	if ($mail->ValidEmail($emailAddress)) {
+//TODO: why aren't we actually using this $email variable?
+        if ($mail->ValidEmail($AppUI->user_email)) {
+			$email = $AppUI->user_email;
+		} else {
+//TODO: this email should be set to something sane
+            $email = 'web2project@web2project.net';
+		}
+		$mail->To($emailAddress);
+        $emailManager = new w2p_Output_EmailManager($AppUI);
+        $body = $emailManager->notifyNewExternalUser($logname, $logpwd);
+		$mail->Subject('New Account Created');
+        $mail->Body($body);
+		$mail->Send();
+	}
+}
+
+function notifyNewUser($emailAddress, $username, $emailUtility = null) {
+	global $AppUI;
+	$mail = (!is_null($emailUtility)) ? $emailUtility : new w2p_Utilities_Mail();
+	if ($mail->ValidEmail($emailAddress)) {
+//TODO: why aren't we actually using this $email variable?
+        if ($mail->ValidEmail($AppUI->user_email)) {
+			$email = $AppUI->user_email;
+		} else {
+//TODO: this email should be set to something sane
+            return false;
+		}
+
+		$mail->To($emailAddress);
+        $emailManager = new w2p_Output_EmailManager($AppUI);
+        $body = $emailManager->getNotifyNewUser($username);
+        $mail->Subject('New Account Created');
+		$mail->Body($body);
+		$mail->Send();
+	}
 }

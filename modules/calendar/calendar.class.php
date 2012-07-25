@@ -22,7 +22,7 @@ class CEvent extends w2p_Core_BaseObject
     /**
       @var string The title of the event */
     //TODO: because this is title instead of name, it doesn't match our convention. Ugh. - kc 19 Sept 2011
-    public $event_title = null;
+    public $event_name = null;
     public $event_start_date = null;
     public $event_end_date = null;
     public $event_parent = null;
@@ -40,9 +40,10 @@ class CEvent extends w2p_Core_BaseObject
     public $event_created = null;
     public $event_updated = null;
     public $event_creator = null;
+
     public function __construct()
     {
-        parent::__construct('events', 'event_id');
+        parent::__construct('events', 'event_id', 'calendar');
     }
 
     public function loadFull($event_id)
@@ -56,45 +57,27 @@ class CEvent extends w2p_Core_BaseObject
         $q->loadObject($this, true, false);
     }
 
-    // overload check operation
-    public function check()
+    public function isValid()
     {
-        $errorArray = array();
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
         if ($this->event_start_date > $this->event_end_date) {
-            $errorArray['start_after_end'] = $baseErrorMsg . 'start date is after end date';
+            $this->_error['start_after_end'] = $baseErrorMsg . 'start date is after end date';
         }
+//TODO: I really don't like this. isValid() should never modify anything, just validate the object
         if (!$this->event_creator) {
             $this->event_creator = $this->_AppUI->user_id;
         }
 
-        $this->_error = $errorArray;
-        return $errorArray;
+        return (count($this->_error)) ? false : true;
     }
 
-    /**
-     * 	Overloaded delete method
-     *
-     * 	@author caseydk
-     * 	@return true if it worked, false if it didn't
-     */
-    public function delete()
+    protected function hook_preDelete()
     {
-        if ($this->_perms->checkModuleItem($this->_tbl_module, 'delete', $this->{$this->_tbl_key})) {
-            if ($msg = parent::delete()) {
-                return $msg;
-            }
-
-            $q = $this->_getQuery();
-            $q->setDelete('user_events');
-            $q->addWhere('event_id = ' . (int) $this->event_id);
-            $q->exec();
-
-            return true;
-        }
-
-        return false;
+        $q = $this->_getQuery();
+        $q->setDelete('user_events');
+        $q->addWhere('event_id = ' . (int) $this->event_id);
+        $q->exec();
     }
 
     public function hook_search()
@@ -107,7 +90,7 @@ class CEvent extends w2p_Core_BaseObject
         $search['table_title'] = 'Events';
         $search['table_orderby'] = 'event_start_date';
         $search['search_fields'] = array(
-            'event_title', 'event_description',
+            'event_name', 'event_description',
             'event_start_date', 'event_end_date'
         );
         $search['display_fields'] = $search['search_fields'];
@@ -291,7 +274,7 @@ class CEvent extends w2p_Core_BaseObject
 				//only show hourly recurrent event one time and add string 'hourly'
 				elseif ($periodLength > 1 && $eventListRec[$i]['event_recurs'] == 1 && $j == 0) {
 					$recEventDate = CEvent::getRecurrentEventforPeriod($start_date, $end_date, $eventListRec[$i]['event_start_date'], $eventListRec[$i]['event_end_date'], $eventListRec[$i]['event_recurs'], $eventListRec[$i]['event_times_recuring'], $j);
-					$eventListRec[$i]['event_title'] = $eventListRec[$i]['event_title'] . ' (' . $this->_AppUI->_('Hourly') . ')';
+					$eventListRec[$i]['event_name'] = $eventListRec[$i]['event_name'] . ' (' . $this->_AppUI->_('Hourly') . ')';
 				}
 				//Weekly and Monthly View and higher recurrence mode
 				//show all events of recurrence > 1
@@ -409,9 +392,9 @@ class CEvent extends w2p_Core_BaseObject
         $mail = new w2p_Utilities_Mail();
         $type = $update ? $this->_AppUI->_('Updated') : $this->_AppUI->_('New');
         if ($clash) {
-            $mail->Subject($this->_AppUI->_('Requested Event') . ': ' . $this->event_title, $locale_char_set);
+            $mail->Subject($this->_AppUI->_('Requested Event') . ': ' . $this->event_name, $locale_char_set);
         } else {
-            $mail->Subject($type . ' ' . $this->_AppUI->_('Event') . ': ' . $this->event_title, $locale_char_set);
+            $mail->Subject($type . ' ' . $this->_AppUI->_('Event') . ': ' . $this->event_name, $locale_char_set);
         }
 
         $emailManager = new w2p_Output_EmailManager($this->_AppUI);
@@ -570,33 +553,22 @@ class CEvent extends w2p_Core_BaseObject
         $this->event_type = (int) $this->event_type;
         $this->event_cwd = (int) $this->event_cwd;
 
-        $this->_error = $this->check();
-        if (count($this->_error)) {
-            return $this->_error;
-        }
-
         $this->event_start_date = $this->_AppUI->convertToSystemTZ($this->event_start_date);
         $this->event_end_date = $this->_AppUI->convertToSystemTZ($this->event_end_date);
         /*
          * TODO: I don't like the duplication on each of these two branches, but I
          *   don't have a good idea on how to fix it at the moment...
          */
-        if ($this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'edit', $this->{$this->_tbl_key})) {
+        if ($this->{$this->_tbl_key} && $this->canEdit()) {
             $this->event_updated = $q->dbfnNowWithTZ();
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+
+            $stored = parent::store();
         }
-        if (0 == $this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'add')) {
+        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
             $this->event_created = $q->dbfnNowWithTZ();
             $this->event_updated = $this->event_created;
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+
+            $stored = parent::store();
         }
 
         return $stored;
@@ -629,7 +601,7 @@ class CEvent extends w2p_Core_BaseObject
 
         $q = $this->_getQuery();
         $q->addQuery('e.event_id as id');
-        $q->addQuery('event_title as name');
+        $q->addQuery('event_name as name');
         $q->addQuery('event_description as description');
         $q->addQuery('event_start_date as startDate');
         $q->addQuery('event_end_date as endDate');
@@ -648,23 +620,4 @@ class CEvent extends w2p_Core_BaseObject
         return $q->loadList();
     }
 
-}
-
-class CMonthCalendar extends w2p_Output_MonthCalendar
-{
-
-    public function __construct($date = null)
-    {
-        parent::__construct($date);
-        trigger_error("CMonthCalendar has been deprecated in v3.0 and will be removed by v4.0. Please use w2p_Output_MonthCalendar instead.", E_USER_NOTICE);
-    }
-
-}
-
-class CCalendar extends CEvent {
-    public function __construct($date = null)
-    {
-        parent::__construct($date);
-        trigger_error("CCalendar has been deprecated in v3.0 and will be removed by v4.0. Please use CEvent instead.", E_USER_NOTICE);
-    }
 }

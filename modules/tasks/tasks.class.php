@@ -38,6 +38,11 @@ class CTask extends w2p_Core_BaseObject
     public $task_duration_type = null;
 
     /**
+     * @var bool
+     */
+    protected $importing_tasks = false; // Introduced this to address bug #1064. Used to keep var between store and postStore.
+
+    /**
      * @deprecated
      */
     public $task_hours_worked = null;
@@ -111,30 +116,35 @@ class CTask extends w2p_Core_BaseObject
         return $this->link . '/' . $this->type . '/' . $this->length;
     }
 
-    // overload check
-    public function check()
+    
+/*
+ * TODO: The check() this is based on is a ridiculous hairy mess that has numerous
+ *   levels of nesting, data modification, and various other things.
+ * 
+ * In short, Here Be Dragons.
+ */ 
+    public function isValid()
     {
-        $errorArray = array();
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
         $this->task_id = (int) $this->task_id;
 
         if (is_null($this->task_priority) || !is_numeric((int) $this->task_priority)) {
-            $errorArray['task_priority'] = $baseErrorMsg . 'task priority is NULL';
+            $this->_error['task_priority'] = $baseErrorMsg . 'task priority is NULL';
         }
         if ($this->task_name == '') {
-            $errorArray['task_name'] = $baseErrorMsg . 'task name is NULL';
+            $this->_error['task_name'] = $baseErrorMsg . 'task name is NULL';
         }
         if (is_null($this->task_project) || 0 == (int) $this->task_project) {
-            $errorArray['task_project'] = $baseErrorMsg . 'task project is not set';
+            $this->_error['task_project'] = $baseErrorMsg . 'task project is not set';
         }
         //Only check the task dates if the config option "check_task_dates" is on
         if (w2PgetConfig('check_task_dates')) {
             if ($this->task_start_date == '' || $this->task_start_date == '0000-00-00 00:00:00') {
-                $errorArray['task_start_date'] = $baseErrorMsg . 'task start date is NULL';
+                $this->_error['task_start_date'] = $baseErrorMsg . 'task start date is NULL';
             }
             if ($this->task_end_date == '' || $this->task_end_date == '0000-00-00 00:00:00') {
-                $errorArray['task_end_date'] = $baseErrorMsg . 'task end date is NULL';
+                $this->_error['task_end_date'] = $baseErrorMsg . 'task end date is NULL';
             }
             if (!isset($errorArray['task_start_date']) && !isset($errorArray['task_end_date'])) {
                 $startTimestamp = strtotime($this->task_start_date);
@@ -144,7 +154,7 @@ class CTask extends w2p_Core_BaseObject
                     $endTimestamp = $startTimestamp;
                 }
                 if ($startTimestamp > $endTimestamp) {
-                    $errorArray['bad_date_selection'] = $baseErrorMsg . 'task start date is after task end date';
+                    $this->_error['bad_date_selection'] = $baseErrorMsg . 'task start date is after task end date';
                 }
             }
         }
@@ -210,8 +220,8 @@ class CTask extends w2p_Core_BaseObject
         // Have deps
         if (array_sum($this_dependencies)) {
             if ($this->task_dynamic == 1) {
-                $errorArray['BadDep_DynNoDep'] = 'BadDep_DynNoDep';
-                return array('BadDep_DynNoDep');
+                $this->_error['BadDep_DynNoDep'] = 'BadDep_DynNoDep';
+                return false;
             }
 
             $this_dependents = $this->task_id ? explode(',', $this->dependentTasks()) : array();
@@ -231,8 +241,8 @@ class CTask extends w2p_Core_BaseObject
             $intersect = array_intersect($this_dependencies, $this_dependents);
             if (array_sum($intersect)) {
                 $ids = '(' . implode(',', $intersect) . ')';
-                $errorArray['BadDep_CircularDep'] = 'BadDep_CircularDep';
-                return array('BadDep_CircularDep', $ids);
+                $this->_error['BadDep_CircularDep'] = 'BadDep_CircularDep';
+                return false;
             }
         }
 
@@ -245,25 +255,25 @@ class CTask extends w2p_Core_BaseObject
             $parents_dependents = explode(',', $this_parent->dependentTasks());
 
             if (in_array($this_parent->task_id, $this_dependencies)) {
-                $errorArray['BadDep_CannotDependOnParent'] = 'BadDep_CannotDependOnParent';
-                return array('BadDep_CannotDependOnParent');
+                $this->_error['BadDep_CannotDependOnParent'] = 'BadDep_CannotDependOnParent';
+                return false;
             }
             // Task parent cannot be child of this task
             if (in_array($this_parent->task_id, $this_children)) {
-                $errorArray['BadParent_CircularParent'] = 'BadParent_CircularParent';
-                return array('BadParent_CircularParent');
+                $this->_error['BadParent_CircularParent'] = 'BadParent_CircularParent';
+                return false;
             }
 
             if ($this_parent->task_parent != $this_parent->task_id) {
                 // ... or parent's parent, cannot be child of this task. Could go on ...
                 if (in_array($this_parent->task_parent, $this_children)) {
-                    $errorArray['BadParent_CircularGrandParent'] = 'BadParent_CircularGrandParent';
-                    return array('BadParent_CircularGrandParent', '(' . $this_parent->task_parent . ')');
+                    $this->_error['BadParent_CircularGrandParent'] = 'BadParent_CircularGrandParent';
+                    return false;
                 }
                 // parent's parent cannot be one of this task's dependencies
                 if (in_array($this_parent->task_parent, $this_dependencies)) {
-                    $errorArray['BadParent_CircularGrandParent'] = 'BadParent_CircularGrandParent';
-                    return array('BadDep_CircularGrandParent', '(' . $this_parent->task_parent . ')');
+                    $this->_error['BadParent_CircularGrandParent'] = 'BadParent_CircularGrandParent';
+                    return false;
                 }
             } // grand parent
 
@@ -271,21 +281,21 @@ class CTask extends w2p_Core_BaseObject
                 $intersect = array_intersect($this_dependencies, $parents_dependents);
                 if (array_sum($intersect)) {
                     $ids = '(' . implode(',', $intersect) . ')';
-                    $errorArray['BadDep_CircularDepOnParentDependent'] = 'BadDep_CircularDepOnParentDependent';
-                    return array('BadDep_CircularDepOnParentDependent', $ids);
+                    $this->_error['BadDep_CircularDepOnParentDependent'] = 'BadDep_CircularDepOnParentDependent';
+                    return false;
                 }
             }
             if ($this->task_dynamic == 1) {
                 // then task's children can not be dependent on parent
                 $intersect = array_intersect($this_children, $parents_dependents);
                 if (array_sum($intersect)) {
-                    $errorArray['BadParent_ChildDepOnParent'] = 'BadParent_ChildDepOnParent';
-                    return array('BadParent_ChildDepOnParent');
+                    $this->_error['BadParent_ChildDepOnParent'] = 'BadParent_ChildDepOnParent';
+                    return false;
                 }
             }
         } // parent
 
-        return $errorArray;
+        return (count($this->_error)) ? false : true;
     }
 
     /*
@@ -582,19 +592,15 @@ class CTask extends w2p_Core_BaseObject
             $this->task_owner = $this->_AppUI->user_id;
         }
 
-        $importing_tasks = false;
-        $this->_error = $this->check();
-
-        if (count($this->_error)) {
-            return $this->_error;
-        }
+        $this->importing_tasks = false;
 
         $this->task_target_budget = filterCurrency($this->task_target_budget);
 
         $q = $this->_getQuery();
         $this->task_updated = $q->dbfnNowWithTZ();
 
-        if ($this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'edit', $this->{$this->_tbl_key})) {
+        if ($this->{$this->_tbl_key} && $this->canEdit()) {
+
             // Load and globalize the old, not yet updated task object
             // e.g. we need some info later to calculate the shifting time for depending tasks
             // see function update_dep_dates
@@ -625,11 +631,9 @@ class CTask extends w2p_Core_BaseObject
             if ($this->task_dynamic == 1) {
                 $this->updateDynamics(true);
             }
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
+            $stored = parent::store();
 
+            if ($stored) {
                 // Milestone or task end date, or dynamic status has changed,
                 // shift the dates of the tasks that depend on this task
                 if (($this->task_end_date != $oTsk->task_end_date) || ($this->task_dynamic != $oTsk->task_dynamic) || ($this->task_milestone == '1')) {
@@ -638,7 +642,7 @@ class CTask extends w2p_Core_BaseObject
             }
         }
 
-        if (0 == $this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'add')) {
+        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
             $this->task_created = $q->dbfnNowWithTZ();
             if ($this->task_start_date == '') {
                 $this->task_start_date = '0000-00-00 00:00:00';
@@ -646,15 +650,13 @@ class CTask extends w2p_Core_BaseObject
             if ($this->task_end_date == '') {
                 $this->task_end_date = '0000-00-00 00:00:00';
             }
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $q->clear();
+            $stored = parent::store();
+
+            if ($stored) {
                 if ($this->task_parent) {
                     // importing tasks do not update dynamics
-                    $importing_tasks = true;
+                    $this->importing_tasks = true;
                 }
-                $stored = true;
             }
         }
 
@@ -663,6 +665,12 @@ class CTask extends w2p_Core_BaseObject
 
     protected function hook_postStore()
     {
+        parent::hook_postStore();
+
+         // TODO $oTsk is a global set by store() and is the task before update.
+         // Using it here as a global is probably a bad idea, but the only way until the old task is stored somewhere
+         // else than a global variable...
+        global $oTsk;
         $q = $this->_query;
 
         if (!$this->task_parent) {
@@ -706,7 +714,7 @@ class CTask extends w2p_Core_BaseObject
 
         $q->exec();
         $q->clear();
-        if ($this->task_contacts) {
+        if ($this->task_contacts && is_array($this->task_contacts)) {
             foreach ($this->task_contacts as $contact) {
                 if ($contact) {
                     $q->addTable('task_contacts');
@@ -720,7 +728,7 @@ class CTask extends w2p_Core_BaseObject
 
         // if is child update parent task
         if ($this->task_parent != $this->task_id) {
-            if (!$importing_tasks) {
+            if (!$this->importing_tasks) {
                 $this->updateDynamics();
             }
 
@@ -800,7 +808,9 @@ class CTask extends w2p_Core_BaseObject
      */
     public function delete()
     {
-        if ($this->_perms->checkModuleItem($this->_tbl_module, 'delete', $this->{$this->_tbl_key})) {
+        $result = false;
+
+        if ($this->canDelete()) {
             //load it before deleting it because we need info on it to update the parents later on
             $this->load($this->task_id);
 
@@ -821,9 +831,8 @@ class CTask extends w2p_Core_BaseObject
             $q->setDelete('user_tasks');
             $q->addWhere('task_id IN (' . $implodedTaskList . ')');
             if (!($q->exec())) {
-                $result = db_error();
-                $this->_error['delete-user-assignments'] = $result;
-                return $result;
+                $this->_error['delete-user-assignments'] = db_error();
+                return false;
             }
             $q->clear();
 
@@ -831,29 +840,21 @@ class CTask extends w2p_Core_BaseObject
             $q->setDelete('task_dependencies');
             $q->addWhere('dependencies_task_id IN (' . $implodedTaskList . ') OR
                 dependencies_req_task_id IN (' . $implodedTaskList . ')');
-            if ($q->exec()) {
-                $result = null;
-            } else {
-                $result = db_error();
-                $this->_error['delete-dependencies'] = $result;
-                return $result;
+            if (!$q->exec()) {
+                $this->_error['delete-dependencies'] = db_error();
+                return false;
             }
             $q->clear();
 
             // delete affiliated contacts
             $q->setDelete('task_contacts');
             $q->addWhere('task_id = ' . $this->task_id);
-            if ($q->exec()) {
-                $result = null;
-            } else {
-                $result = db_error();
-                $this->_error['delete-contacts'] = $result;
-                return $result;
+            if (!$q->exec()) {
+                $this->_error['delete-contacts'] = db_error();
+                return false;
             }
 
-            if ($msg = parent::delete()) {
-                return $msg;
-            }
+            $result = parent::delete();
 
             if ($this->task_parent != $this->task_id) {
                 $this->updateDynamics();
@@ -862,11 +863,9 @@ class CTask extends w2p_Core_BaseObject
             $last_task_data = $this->getLastTaskData($this->task_project);
             CProject::updateTaskCache(
                     $this->task_project, $last_task_data['task_id'], $last_task_data['last_date'], $this->getTaskCount($this->task_project));
-
-            return true;
         }
 
-        return false;
+        return $result;
     }
 
     /** Retrieve tasks with latest task_end_dates within given project
@@ -1094,24 +1093,22 @@ class CTask extends w2p_Core_BaseObject
         $users = $q->loadList();
         $q->clear();
 
-        if (count($users)) {
-            $emailManager = new w2p_Output_EmailManager($this->_AppUI);
-            $body = $emailManager->getTaskNotify($this, $users);
-
-            $mail->Body($body, (isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : ''));
-        }
-
         $mail_owner = $this->_AppUI->getPref('MAILALL');
 
         foreach ($users as $row) {
             if ($mail_owner || $row['assignee_id'] != $this->_AppUI->user_id) {
                 if ($mail->ValidEmail($row['assignee_email'])) {
+
+                    $emailManager = new w2p_Output_EmailManager($this->_AppUI);
+                    $body = $emailManager->getTaskNotify($this, $row);
+
+                    $mail->Body($body, (isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : ''));
+
                     $mail->To($row['assignee_email'], true);
                     $mail->Send();
                 }
             }
         }
-
         return '';
     }
 
@@ -2242,8 +2239,9 @@ class CTask extends w2p_Core_BaseObject
         $mail = new w2p_Utilities_Mail();
         $mail->Subject($subject, $locale_char_set);
 
+        $user = new CUser();
         foreach ($contacts as $contact) {
-            $user_id = CUser::getUserIdByContactID($contact['contact_id']);
+            $user_id = $user->getIdByContactId($contact['contact_id']);
             $this->_AppUI->loadPrefs($user_id);
 
             $df = $this->_AppUI->getPref('DISPLAYFORMAT');
@@ -2327,6 +2325,7 @@ class CTask extends w2p_Core_BaseObject
         $q->addQuery('task_log.*, task_log_task as task_id, user_username');
         $q->addQuery('billingcode_name as task_log_costcode, billingcode_category');
         $q->addQuery('contact_display_name AS real_name');
+        $q->addQuery('contact_display_name AS task_log_creator');
         $q->addWhere('task_log_task = ' . (int) $taskId . ($problem ? ' AND task_log_problem > 0' : ''));
         $q->addOrder('task_log_date');
         $q->addOrder('task_log_created');

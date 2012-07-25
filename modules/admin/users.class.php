@@ -27,35 +27,25 @@ class CUser extends w2p_Core_BaseObject
         parent::__construct('users', 'user_id');
     }
 
-    public function check()
+    public function isValid()
     {
-        $errorArray = array();
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
         if (!$this->user_id && '' == trim($this->user_password)) {
-            $errorArray['user_password'] = $baseErrorMsg . 'user password is not set';
+            $this->_error['user_password'] = $baseErrorMsg . 'user password is not set';
         }
         if (!$this->user_id && $this->user_exists($this->user_username)) {
-            $errorArray['user_exists'] = $baseErrorMsg . 'this user already exists';
+            $this->_error['user_exists'] = $baseErrorMsg . 'this user already exists';
         }
 
-        $this->_error = $errorArray;
-        return $errorArray;
+        return (count($this->_error)) ? false : true;
     }
 
     public function store($AppUI = null, $externally_created_user = false)
     {
         $stored = false;
 
-        $this->_error = $this->check();
-        if (count($this->_error)) {
-            return false;
-        }
-
-        if ($this->{$this->_tbl_key} &&
-                ($this->_perms->checkModuleItem($this->_tbl_module, 'edit', $this->{$this->_tbl_key})
-                || $this->{$this->_tbl_key} == $this->_AppUI->user_id)
-        ) {
+        if ($this->{$this->_tbl_key} && $this->canEdit()) {
             $this->perm_func = 'updateLogin';
             $tmpUser = new CUser();
             $tmpUser->overrideDatabase($this->_query);
@@ -69,22 +59,14 @@ class CUser extends w2p_Core_BaseObject
                 $this->user_password = $tmpUser->user_password;
             }
 
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+            $stored = parent::store();
         }
 
-        if (0 == $this->{$this->_tbl_key} && ($this->_perms->checkModuleItem($this->_tbl_module, 'add') || ($externally_created_user && w2PgetConfig('activate_external_user_creation', false)))) {
+        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
             $this->perm_func = 'addLogin';
             $this->user_password = md5($this->user_password);
 
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+            $stored = parent::store();
         }
 
         return $stored;
@@ -121,6 +103,23 @@ class CUser extends w2p_Core_BaseObject
         parent::hook_postStore();
     }
 
+    public function canEdit()
+    {
+        $result = false;
+        if (parent::canEdit() || $this->user_id == $this->_AppUI->user_id) {
+            $result = true;
+        }
+        return $result;
+    }
+    public function canCreate()
+    {
+        $result = false;
+        if (parent::canCreate() || ($externally_created_user && w2PgetConfig('activate_external_user_creation', false))) {
+            $result = true;
+        }
+        return $result;
+    }
+
     public function canDelete()
     {
         $tables[] = array('label' => 'Companies', 'name' => 'companies', 'idfield' => 'company_id', 'joinfield' => 'company_owner');
@@ -144,24 +143,14 @@ class CUser extends w2p_Core_BaseObject
         return parent::canDelete($msg, $this->user_id, $tables);
     }
 
-    public function delete()
+    protected function hook_preDelete()
     {
-        if ($this->_perms->checkModuleItem($this->_tbl_module, 'delete', $this->{$this->_tbl_key})) {
+        $this->_perms->deleteLogin($this->user_id);
 
-            $this->_perms->deleteLogin($this->user_id);
-
-            $q = $this->_getQuery();
-            $q->setDelete('user_preferences');
-            $q->addWhere('pref_user = ' . $this->user_id);
-            $q->exec();
-
-            if ($msg = parent::delete()) {
-                return $msg;
-            }
-            return true;
-        }
-
-        return false;
+        $q = $this->_getQuery();
+        $q->setDelete('user_preferences');
+        $q->addWhere('pref_user = ' . $this->user_id);
+        $q->exec();
     }
 
     public function hook_search()

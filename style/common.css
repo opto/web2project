@@ -1,3 +1,64 @@
+
+/* These are some default styles used throughout. */
+.left {
+    float: left;
+    text-align: left;
+}
+
+.right {
+    float:      right;
+}
+
+.icon {
+    margin:     10px;
+}
+
+/* Begin: Structural styles */
+div {
+    font-size:  8pt;
+}
+
+div.std { 
+	background: #fafafa;
+    height:     1%;
+    overflow:   hidden;
+    width:      100%;
+}
+/* End: Structural styles
+
+/* Begin: Header Bar & Navigation for all pages */
+.nav ul li {
+	float:      left;
+	margin:     0px 1px 0px 0px;
+	padding:    0px;
+}
+
+.nav ul {
+    font:       bold 8pt helvetica,arial,sans-serif;
+	line-height:100%;
+	list-style-image:none;
+	list-style-position:outside;
+	list-style-type:none;
+	margin:     2px 0px 0px 0px;
+	padding:    0px;
+}
+
+.nav ul li a {
+	color:      #000000;
+	display:    block;
+	padding:    5px 7px 6px;
+	text-decoration:none;
+}
+
+.quicknav {
+    margin-right: 10px;
+}
+.quicknav a, form{
+    margin: 0px 8px 0 8px;
+}
+/* End: Header Bar & Navigation for all pages */
+
+
 .system-info P {
 	color: #000000;
 	font-size: 7pt;
@@ -64,14 +125,18 @@ td.today span img, td.empty span img
 .list ._description {   width: 30%; }
 
 .list ._complete, .list ._created, .list ._date, .list ._datetime, .list ._duration,
-    .list ._hours, .list ._update, .list ._updated, .list ._worked  {
+    .list ._hours, .list ._update, .list ._updated, .list ._worked, .list ._identifier,
+    .list ._size {
     text-align: center;
 }
-.list ._author, .list ._creator, .list ._name, .list ._owner, .list ._updator {
-    white-space:nowrap;
+.list ._author, .list ._creator, .list ._name, .list ._owner, .list ._updator,
+    .list ._size, .list ._birthday, .list ._date, .list ._created, .list ._datetime,
+    .list ._update, .list ._updated {
+        white-space:nowrap;
 }
 ._assignment, ._category, ._count, .countp, ._complete, ._in, .inactive,
-    ._owner, ._priority, ._problem, .replies, ._status, ._username, ._users, ._version {
+    ._owner, ._priority, ._problem, ._problem, .replies, ._status, ._username,
+    ._users, ._version {
     text-align: center;
 }
 ._duration {
@@ -107,6 +172,12 @@ tr.active td._date, tr.active td._datetime, tr.active td._duration, tr.active td
     background-color:#e6eedd;
 }
 
+table.list {
+    border-spacing: 1px;
+    padding: 2px;
+    width: 100%;
+}
+
 /*
  * These two styles handle all of the mouseover highlighting for all lists
  *   whether it's projects, tasks, links, or anything else.
@@ -130,3 +201,12 @@ table.list tr:hover td._name {
 .highlight7 { background-color: #FF69B4; }
 
 #headerNav .module { font-style: italic; font-size:  small; }
+
+
+/* Used in system module */
+.main {
+    margin-top: 20px;
+    min-width:  250px;
+    width:      45%;
+}
+

@@ -11,22 +11,22 @@ class CSystem_SysVal extends w2p_Core_BaseObject {
 	public $sysval_value_id = null;
 	public $sysval_value = null;
 
-	public function check() {
-        $errorArray = array();
+    public function isValid()
+    {
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
         if ($this->sysval_key_id == 0) {
-            $errorArray['sysval_key_id'] = $baseErrorMsg . 'key type is not set';
+            $this->_error['sysval_key_id'] = $baseErrorMsg . 'key type is not set';
 		}
 		if (!$this->sysval_title) {
-			$errorArray['sysval_title'] = $baseErrorMsg . 'key title is not set';
+			$this->_error['sysval_title'] = $baseErrorMsg . 'key title is not set';
 		}
 
-		return $errorArray;
-	}
+        return (count($this->_error)) ? false : true;
+    }
 
 	public function __construct($key = null, $title = null, $value = null) {
-        parent::__construct('sysvals', 'sysval_id');
+        parent::__construct('sysvals', 'sysval_id', 'system');
 		$this->sysval_key_id = $key;
 		$this->sysval_title = $title;
 		$this->sysval_value = $value;
@@ -54,11 +54,6 @@ class CSystem_SysVal extends w2p_Core_BaseObject {
 
         $this->w2PTrimAll();
 
-        $this->_error = $this->check();
-
-        if (count($this->_error)) {
-            return $this->_error;
-        }
 		$values = parseFormatSysval($this->sysval_value, $this->sysval_key_id);
 		//lets delete the old values
 		$q = $this->_getQuery();
@@ -67,8 +62,7 @@ class CSystem_SysVal extends w2p_Core_BaseObject {
 			$q->addWhere('sysval_key_id = ' . (int)$this->sysval_key_id);
 			$q->addWhere('sysval_title = \'' . $this->sysval_title . '\'');
 			if (!$q->exec()) {
-				$msg = get_class($this) . '::store failed: ' . db_error();
-                $this->_error['store'] = $msg;
+                $this->_error['store'] = get_class($this) . '::store failed: ' . db_error();
                 return false;
 			}
 		}
@@ -80,8 +74,7 @@ class CSystem_SysVal extends w2p_Core_BaseObject {
 			$q->addInsert('sysval_value_id', $key);
 			$q->addInsert('sysval_value', $value);
 			if (!$q->exec()) {
-				$msg = get_class($this) . '::store failed: ' . db_error();
-                $this->_error['store-failed'] = $msg;
+				$this->_error['store'] = get_class($this) . '::store failed: ' . db_error();
                 return false;
 			}
 			$q->clear();
@@ -90,24 +83,18 @@ class CSystem_SysVal extends w2p_Core_BaseObject {
 	}
 
 	public function delete() {
-        $q = $this->_getQuery();
+        $result = false;
+
 		if ($this->sysval_title) {
+            $q = $this->_getQuery();
 			$q->setDelete('sysvals');
 			$q->addWhere('sysval_title = \'' . $this->sysval_title . '\'');
-			if (!$q->exec()) {
-				return get_class($this) . '::delete failed <br />' . db_error();
-			}
-		}
-		return null;
-	}
-}
 
-/**
- * @deprecated
- */
-class CSysVal extends CSystem_SysVal {
-	public function __construct($key = null, $title = null, $value = null) {
-        parent::__construct($key, $title, $value);
-        trigger_error("CSysVal has been deprecated in v3.0 and will be removed by v4.0. Please use CSystem_SysVal instead.", E_USER_NOTICE );
+            $result = $q->exec();
+            if(!$result) {
+                $this->_errors[] = db_error();
+            }
+		}
+		return $result;
 	}
 }

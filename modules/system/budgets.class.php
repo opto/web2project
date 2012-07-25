@@ -21,18 +21,15 @@ class CSystem_Budget extends w2p_Core_BaseObject
         parent::__construct('budgets', 'budget_id', 'system');
     }
 
-    public function check()
+    public function isValid()
     {
-        // ensure the integrity of some variables
-        $errorArray = array();
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
         if (0 == trim($this->budget_amount)) {
-            $errorArray['budget_amount'] = $baseErrorMsg . 'budget amount must be greater than zero';
+            $this->_error['budget_amount'] = $baseErrorMsg . 'budget amount must be greater than zero';
         }
 
-        $this->_error = $errorArray;
-        return $errorArray;
+        return (count($this->_error)) ? false : true;
     }
 
     public function getBudgetAmounts($company_id = -1, $dept_id = -1)
@@ -56,12 +53,6 @@ class CSystem_Budget extends w2p_Core_BaseObject
     {
         $stored = false;
 
-        $errorMsgArray = $this->check();
-
-        if (count($errorMsgArray) > 0) {
-            return $errorMsgArray;
-        }
-
         if ($this->budget_start_date) {
             $date = new w2p_Utilities_Date($this->budget_start_date);
             $this->budget_start_date = $date->format(FMT_DATETIME_MYSQL);
@@ -70,41 +61,10 @@ class CSystem_Budget extends w2p_Core_BaseObject
             $date = new w2p_Utilities_Date($this->budget_end_date);
             $this->budget_end_date = $date->format(FMT_DATETIME_MYSQL);
         }
-
-        if ($this->_perms->checkModuleItem('system', 'edit')) {
-            if (($msg = parent::store())) {
-                return $msg;
-            }
-            $stored = true;
+//TODO: Why isn't there a canCreate branch here?
+        if ($this->canEdit()) {
+            $stored = parent::store();
         }
         return $stored;
     }
-
-    public function delete()
-    {
-        $result = false;
-
-        if ($this->_perms->checkModuleItem('system', 'edit')) {
-            if ($msg = parent::delete()) {
-                return $result;
-            }
-            $result = true;
-        }
-        return $result;
-    }
-
-}
-
-/**
- * @deprecated
- */
-class budgets extends CSystem_Budget
-{
-
-    public function __construct()
-    {
-        parent::__construct();
-        trigger_error("budgets has been deprecated in v3.0 and will be removed by v4.0. Please use CSystem_Budget instead.", E_USER_NOTICE);
-    }
-
 }

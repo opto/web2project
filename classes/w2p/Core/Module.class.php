@@ -30,16 +30,17 @@ class w2p_Core_Module extends w2p_Core_BaseObject {
     protected $modules;
 
 	public function __construct() {
-        parent::__construct('modules', 'mod_id');
+        parent::__construct('modules', 'mod_id', 'system');
         $this->modules  = W2P_BASE_DIR.'/modules/';
 	}
 
 	public function install() {
 		$q = $this->_getQuery();
 		$q->addTable('modules');
-		$q->addQuery('mod_directory');
+		$q->addQuery('mod_id');
 		$q->addWhere('mod_directory = \'' . $this->mod_directory . '\'');
-		if ($temp = $q->loadHash()) {
+        $result = (int) $q->loadResult();
+		if ($result) {
 			// the module is already installed
 			// TODO: check for older version - upgrade
 			return false;
@@ -50,19 +51,18 @@ class w2p_Core_Module extends w2p_Core_BaseObject {
 
 		$this->_compactModuleUIOrder();
 
-		$perms = &$GLOBALS['AppUI']->acl();
-		$perms->addModule($this->mod_directory, $this->mod_name);
+        $this->_perms->addModule($this->mod_directory, $this->mod_name);
 		// Determine if it is an admin module or not, then add it to the correct set
 		if (!isset($this->mod_admin)) {
 			$this->mod_admin = 0;
 		}
 		if ($this->mod_admin) {
-			$perms->addGroupItem($this->mod_directory, "admin");
+			$this->_perms->addGroupItem($this->mod_directory, "admin");
 		} else {
-			$perms->addGroupItem($this->mod_directory, "non_admin");
+			$this->_perms->addGroupItem($this->mod_directory, "non_admin");
 		}
 		if (isset($this->permissions_item_table) && $this->permissions_item_table) {
-			$perms->addModuleSection($this->permissions_item_table);
+			$this->_perms->addModuleSection($this->permissions_item_table);
 		}
 		return true;
 	}
@@ -94,19 +94,18 @@ class w2p_Core_Module extends w2p_Core_BaseObject {
 			$q->clear();
 			return db_error();
 		} else {
-			$perms = &$GLOBALS['AppUI']->acl();
 			if (!isset($this->mod_admin)) {
 				$this->mod_admin = 0;
             }
 			if ($this->mod_admin) {
-				$perms->deleteGroupItem($this->mod_directory, 'admin');
+				$this->_perms->deleteGroupItem($this->mod_directory, 'admin');
 			} else {
-				$perms->deleteGroupItem($this->mod_directory, 'non_admin');
+				$this->_perms->deleteGroupItem($this->mod_directory, 'non_admin');
 			}
-			$perms->deleteModuleItems($this->mod_directory);
-			$perms->deleteModule($this->mod_directory);
+			$this->_perms->deleteModuleItems($this->mod_directory);
+			$this->_perms->deleteModule($this->mod_directory);
 			if (isset($this->permissions_item_table) && $this->permissions_item_table) {
-				$perms->deleteModuleSection($this->permissions_item_table);
+				$this->_perms->deleteModuleSection($this->permissions_item_table);
 			}
 			$this->_compactModuleUIOrder();
 			return null;
@@ -169,6 +168,13 @@ class w2p_Core_Module extends w2p_Core_BaseObject {
         $baseErrorMsg = get_class($this) . '::deploy-check failed - ';
 
         return $errorArray;
+    }
+
+    public function canEdit() {
+        return $this->_perms->checkModule($this->_tbl_module, 'edit');
+    }
+    public function canCreate() {
+        return $this->_perms->checkModule($this->_tbl_module, 'add');
     }
 
     public function validate() {
@@ -264,6 +270,7 @@ class w2p_Core_Module extends w2p_Core_BaseObject {
 		return null;
 	}
 
+//TODO: break these out to a separate w2p_Core_ModuleConfig class
     public function getCustomizableViews($module) {
 		$q = new w2p_Database_Query();
 		$q->addTable('module_config');
@@ -304,6 +311,9 @@ class w2p_Core_Module extends w2p_Core_BaseObject {
 		}
     }
 
+    /*
+     * @deprecated
+     */
     public static function getSettings($module, $configName = '') {
 		$q = new w2p_Database_Query();
 		$q->addTable('module_config');
@@ -316,6 +326,9 @@ class w2p_Core_Module extends w2p_Core_BaseObject {
 		return $q->loadHashList();
     }
 
+    /*
+     * @deprecated
+     */
     public static function saveSettings($moduleName, $configName,
 			$displayColumns, $displayOrder, $configValue, $configText) {
 

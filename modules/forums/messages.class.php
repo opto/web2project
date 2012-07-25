@@ -15,62 +15,49 @@ class CForum_Message extends w2p_Core_BaseObject
 
     public function __construct()
     {
-        parent::__construct('forum_messages', 'message_id');
+        parent::__construct('forum_messages', 'message_id', 'forums');
     }
 
-    public function check()
+    public function isValid()
     {
-        $errorArray = array();
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
         if (0 == (int) $this->message_forum) {
-            $errorArray['message_forum'] = $baseErrorMsg . 'forum is not set';
+            $this->_error['message_forum'] = $baseErrorMsg . 'forum is not set';
         }
         if (0 == (int) $this->message_author) {
-            $errorArray['message_author'] = $baseErrorMsg . 'message author is not set';
+            $this->_error['message_author'] = $baseErrorMsg . 'message author is not set';
         }
         if ('' == trim($this->message_title)) {
-            $errorArray['message_title'] = $baseErrorMsg . 'message title is not set';
+            $this->_error['message_title'] = $baseErrorMsg . 'message title is not set';
         }
         if ('' == trim($this->message_body)) {
-            $errorArray['message_body'] = $baseErrorMsg . 'message body is not set';
+            $this->_error['message_body'] = $baseErrorMsg . 'message body is not set';
         }
 
-        $this->_error = $errorArray;
-        return $errorArray;
+        return (count($this->_error)) ? false : true;
     }
 
     public function store()
     {
         $stored = false;
 
-        $this->_error = $this->check();
-
-        if (count($this->_error)) {
-            return $this->_error;
-        }
-
         $q = $this->_getQuery();
 
-//TODO: this is an oddball permissions object where the module doesn't determine the access..
-        if ($this->{$this->_tbl_key} && $this->_perms->checkModuleItem('forums', 'edit', $this->{$this->_tbl_module})) {
+        if ($this->{$this->_tbl_key} && $this->canEdit()) {
             $q->setDelete('forum_visits');
             $q->addWhere('visit_message = ' . (int) $this->message_id);
             $q->exec();
 
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+            $stored = parent::store();
         }
 
-        if (0 == $this->{$this->_tbl_key} && $this->_perms->checkModuleItem('forums', 'add')) {
+        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
             $this->message_date = $q->dbfnNowWithTZ();
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
+            
+            $stored = parent::store();
 
+            if ($stored) {
                 $q->addTable('forum_messages');
                 $q->addQuery('count(message_id), MAX(message_date)');
                 $q->addWhere('message_forum = ' . (int) $this->message_forum);
@@ -90,8 +77,6 @@ class CForum_Message extends w2p_Core_BaseObject
                 $forum->store();
 
                 $this->sendWatchMail(false);
-
-                $stored = true;
             }
         }
         return $stored;
@@ -101,14 +86,7 @@ class CForum_Message extends w2p_Core_BaseObject
     {
         $result = false;
 
-//TODO: this is an oddball permissions object where the module doesn't determine the access.. but another does?
-        if ($this->_perms->checkModuleItem('forums', 'delete', $this->project_id)) {
-            $q = $this->_getQuery();
-            $q->setDelete('forum_visits');
-            $q->addWhere('visit_message = ' . (int) $this->message_id);
-            $q->exec(); // No error if this fails, it is not important.
-            $q->clear();
-
+        if ($this->canDelete()) {
             $q->addTable('forum_messages');
             $q->addQuery('message_forum');
             $q->addWhere('message_id = ' . (int) $this->message_id);
@@ -117,14 +95,8 @@ class CForum_Message extends w2p_Core_BaseObject
 
             $q->setDelete('forum_messages');
             $q->addWhere('message_id = ' . (int) $this->message_id);
-            if ($q->exec()) {
-                $result = null;
-            } else {
-                $result = db_error();
-                $this->_error['delete-messages'] = $result;
-                return $result;
-            }
-            $q->clear();
+            
+            $result = parent::delete();
 
             $q->addTable('forum_messages');
             $q->addQuery('COUNT(message_id)');
@@ -136,9 +108,17 @@ class CForum_Message extends w2p_Core_BaseObject
             $q->addUpdate('forum_message_count', $messageCount);
             $q->addWhere('forum_id = ' . (int) $forumId);
             $q->exec();
-            $result = true;
         }
         return $result;
+    }
+
+    protected function hook_preDelete()
+    {
+        $q = $this->_getQuery();
+        $q->setDelete('forum_visits');
+        $q->addWhere('visit_message = ' . (int) $this->message_id);
+        $q->exec(); // No error if this fails, it is not important.
+        $q->clear();
     }
 
     public function loadByParent($parent_id = 0)

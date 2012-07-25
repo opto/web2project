@@ -49,6 +49,8 @@ $total_hours = $project->getTotalProjectHours();
 // get the prefered date format
 $df = $AppUI->getPref('SHDATEFORMAT');
 
+$criticalTasks = ($project_id > 0) ? $project->getCriticalTasks($project_id) : null;
+
 // create Date objects from the datetime fields
 $end_date = intval($project->project_end_date) ? new w2p_Utilities_Date($project->project_end_date) : null;
 $actual_end_date = null;
@@ -156,7 +158,11 @@ function delIt() {
 		</tr>
 		<tr>
 			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Short Name'); ?>:</td>
-            <?php echo $htmlHelper->createCell('project_short_name', $project->project_short_name); ?>
+            <?php
+
+            // TODO Need to rename field to avoid confusing HTMLhelper
+            echo $htmlHelper->createCell('project_shortname', $project->project_short_name);
+            ?>
 		</tr>
 		<tr>
 			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Start Date'); ?>:</td>
@@ -182,7 +188,15 @@ function delIt() {
 		</tr>
 		<tr>
 			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Project Owner'); ?>:</td>
-            <?php echo $htmlHelper->createCell('project_owner', $project->project_owner_name); ?>
+            <td class="hilite">
+                <?php
+                $pusername = $project->user_name;
+                $puserid = $project->project_owner;
+
+                //TODO HTML helper not working properly due to field having suffix _owner, avoiding helper until fix
+                echo "<a href=\"?m=contacts&a=view&contact_id=$puserid\" alt=\"$pusername\">$pusername</a>";
+                ?>
+            </td>
 		</tr>
 		<tr>
 			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('URL'); ?>:</td>

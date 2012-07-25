@@ -41,17 +41,11 @@ class CFile extends w2p_Core_BaseObject {
 
         $stored = false;
 
-        $this->_error = $this->check();
-
-        if (count($this->_error)) {
-            return $this->_error;
-        }
-
         if ($helpdesk_available && $this->file_helpdesk_item != 0) {
             $this->addHelpDeskTaskLog();
         }
 
-        if ($this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'edit', $this->{$this->_tbl_key})) {
+        if ($this->{$this->_tbl_key} && $this->canEdit()) {
             // If while editing a file we attach a new file, then we go ahead and set file_id to 0 so a new file object is created. We also set its owner to the current user.
             // If not then we are just editing the file information alone. So we should leave the file_id as it is.
             $this->file_parent = $this->file_id;
@@ -59,13 +53,9 @@ class CFile extends w2p_Core_BaseObject {
                 $this->file_id = 0;
                 $this->file_owner = $this->_AppUI->user_id;
             }
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+            $stored = parent::store();
         }
-        if (0 == $this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'add')) {
+        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
             $this->file_owner = $this->_AppUI->user_id;
             $q = $this->_getQuery();
             $q->clear();
@@ -84,11 +74,7 @@ class CFile extends w2p_Core_BaseObject {
             $q->clear();
 
             $this->file_date = $q->dbfnNowWithTZ();
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+            $stored = parent::store();
         }
 
         return $stored;
@@ -207,29 +193,28 @@ class CFile extends w2p_Core_BaseObject {
 		return $result;
 	}
 
-	public function check() {
-        $errorArray = array();
+    public function isValid()
+    {
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
         if ($this->file_id == 0 && '' == $this->file_real_filename) {
-            $errorArray['file_real_filename'] = $baseErrorMsg . 'file real name is not set';
+            $this->_error['file_real_filename'] = $baseErrorMsg . 'file real name is not set';
         }
         if ($this->file_id == 0 && '' == $this->file_name) {
-            $errorArray['file_name'] = $baseErrorMsg . 'file name is not set';
+            $this->_error['file_name'] = $baseErrorMsg . 'file name is not set';
         }
         if (!is_int($this->file_parent) && '' == $this->file_parent) {
-            $errorArray['file_parent'] = $baseErrorMsg . 'file parent id is not set';
+            $this->_error['file_parent'] = $baseErrorMsg . 'file parent id is not set';
         }
         if ($this->file_id == 0 && !is_int($this->file_size) && '' == $this->file_size) {
-            $errorArray['file_size'] = $baseErrorMsg . 'file size is not set';
+            $this->_error['file_size'] = $baseErrorMsg . 'file size is not set';
         }
         if ($this->file_id == 0 && '' == $this->file_type) {
-            $errorArray['file_type'] = $baseErrorMsg . 'file type is not set';
+            $this->_error['file_type'] = $baseErrorMsg . 'file type is not set';
         }
 
-        $this->_error = $errorArray;
-        return $errorArray;
-	}
+        return (count($this->_error)) ? false : true;
+    }
 
 	public function checkout($userId, $fileId, $coReason) {
 		$q = new w2p_Database_Query;
@@ -253,20 +238,18 @@ class CFile extends w2p_Core_BaseObject {
 
 	}
 
-	public function delete() {
+	public function delete()
+    {
         global $helpdesk_available;
+        $result = false;
 
         $this->_error = array();
 
-        if ($this->_perms->checkModuleItem($this->_tbl_module, 'delete', $this->{$this->_tbl_key})) {
+        if ($this->canDelete()) {
             // remove the file from the file system
             if (!$this->deleteFile()) {
                 $this->_error['file-delete'] = 'file-delete';
                 return false;
-            }
-
-            if ($msg = parent::delete()) {
-                return $msg;
             }
 
             // delete any index entries
@@ -275,17 +258,16 @@ class CFile extends w2p_Core_BaseObject {
             $q->addQuery('*');
             $q->addWhere('file_id = ' . (int)$this->file_id);
             if (!$q->exec()) {
-                $result = db_error();
-                $this->_error['index-delete'] = $result;
-                return $result;
+                $this->_error['index-delete'] = db_error();
+                return false;
             }
             if ($helpdesk_available && $this->file_helpdesk_item != 0) {
                 $this->addHelpDeskTaskLog();
             }
 
-            return true;
+            $result = parent::delete();
         }
-		return false;
+		return $result;
 	}
 
 	// delete File from File System

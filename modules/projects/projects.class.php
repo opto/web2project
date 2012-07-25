@@ -95,41 +95,39 @@ class CProject extends w2p_Core_BaseObject
         return $result;
     }
 
-    public function check()
+    public function isValid()
     {
-        $errorArray = array();
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
         if ('' == $this->project_name) {
-            $errorArray['project_name'] = $baseErrorMsg . 'project name is not set';
+            $this->_error['project_name'] = $baseErrorMsg . 'project name is not set';
         }
         if ('' == $this->project_short_name) {
-            $errorArray['project_short_name'] = $baseErrorMsg . 'project short name is not set';
+            $this->_error['project_short_name'] = $baseErrorMsg . 'project short name is not set';
         }
         if (0 == (int) $this->project_company) {
-            $errorArray['project_company'] = $baseErrorMsg . 'project company is not set';
+            $this->_error['project_company'] = $baseErrorMsg . 'project company is not set';
         }
         if (0 == (int) $this->project_owner) {
-            $errorArray['project_owner'] = $baseErrorMsg . 'project owner is not set';
+            $this->_error['project_owner'] = $baseErrorMsg . 'project owner is not set';
         }
         if (0 == (int) $this->project_creator) {
-            $errorArray['project_creator'] = $baseErrorMsg . 'project creator is not set';
+            $this->_error['project_creator'] = $baseErrorMsg . 'project creator is not set';
         }
         if (!is_int($this->project_priority) && '' == $this->project_priority) {
-            $errorArray['project_priority'] = $baseErrorMsg . 'project priority is not set';
+            $this->_error['project_priority'] = $baseErrorMsg . 'project priority is not set';
         }
         if ('' == $this->project_color_identifier) {
-            $errorArray['project_color_identifier'] = $baseErrorMsg . 'project color identifier is not set';
+            $this->_error['project_color_identifier'] = $baseErrorMsg . 'project color identifier is not set';
         }
         if (!is_int($this->project_type) && '' == $this->project_type) {
-            $errorArray['project_type'] = $baseErrorMsg . 'project type is not set';
+            $this->_error['project_type'] = $baseErrorMsg . 'project type is not set';
         }
         if (!is_int($this->project_status) && '' == $this->project_status) {
-            $errorArray['project_status'] = $baseErrorMsg . 'project status is not set';
+            $this->_error['project_status'] = $baseErrorMsg . 'project status is not set';
         }
 
-        $this->_error = $errorArray;
-        return $errorArray;
+        return (count($this->_error)) ? false : true;
     }
 
     public function loadFull($AppUI = null, $projectId)
@@ -154,75 +152,66 @@ class CProject extends w2p_Core_BaseObject
         $this->budget = $this->getBudget();
     }
 
-    public function delete()
+    protected function hook_preDelete()
     {
-        $result = false;
+        $q = $this->_getQuery();
+        $q->addTable('tasks');
+        $q->addQuery('task_id');
+        $q->addWhere('task_project = ' . (int) $this->project_id);
+        $tasks_to_delete = $q->loadColumn();
 
-        if ($this->_perms->checkModuleItem($this->_tbl_module, 'delete', $this->{$this->_tbl_key})) {
-            $q = $this->_getQuery();
-            $q->addTable('tasks');
-            $q->addQuery('task_id');
-            $q->addWhere('task_project = ' . (int) $this->project_id);
-            $tasks_to_delete = $q->loadColumn();
-
-            $q->clear();
-            $task = new CTask();
-            $task->overrideDatabase($this->_query);
-            foreach ($tasks_to_delete as $task_id) {
-                $task->task_id = $task_id;
-                $task->delete();
-            }
-
-            $q->clear();
-            $q->addTable('files');
-            $q->addQuery('file_id');
-            $q->addWhere('file_project = ' . (int) $this->project_id);
-            $files_to_delete = $q->loadColumn();
-
-            $q->clear();
-            $file = new CFile();
-            $file->overrideDatabase($this->_query);
-            foreach ($files_to_delete as $file_id) {
-                $file->file_id = $file_id;
-                $file->delete();
-            }
-
-            $q->clear();
-            $q->addTable('events');
-            $q->addQuery('event_id');
-            $q->addWhere('event_project = ' . (int) $this->project_id);
-            $events_to_delete = $q->loadColumn();
-
-            $q->clear();
-            $event = new CEvent();
-            $event->overrideDatabase($this->_query);
-            foreach ($events_to_delete as $event_id) {
-                $event->event_id = $event_id;
-                $event->delete();
-            }
-
-            $q->clear();
-            // remove the project-contacts and project-departments map
-            $q->setDelete('project_contacts');
-            $q->addWhere('project_id =' . (int) $this->project_id);
-            $q->exec();
-
-            $q->clear();
-            $q->setDelete('project_departments');
-            $q->addWhere('project_id =' . (int) $this->project_id);
-            $q->exec();
-
-            $q->clear();
-            $q->setDelete('tasks');
-            $q->addWhere('task_represents_project =' . (int) $this->project_id);
-
-            $q->clear();
-            if ($msg = parent::delete()) {
-                return $msg;
-            }
-            return true;
+        $q->clear();
+        $task = new CTask();
+        $task->overrideDatabase($this->_query);
+        foreach ($tasks_to_delete as $task_id) {
+            $task->task_id = $task_id;
+            $task->delete();
         }
-        return $result;
+
+        $q->clear();
+        $q->addTable('files');
+        $q->addQuery('file_id');
+        $q->addWhere('file_project = ' . (int) $this->project_id);
+        $files_to_delete = $q->loadColumn();
+
+        $q->clear();
+        $file = new CFile();
+        $file->overrideDatabase($this->_query);
+        foreach ($files_to_delete as $file_id) {
+            $file->file_id = $file_id;
+            $file->delete();
+        }
+
+        $q->clear();
+        $q->addTable('events');
+        $q->addQuery('event_id');
+        $q->addWhere('event_project = ' . (int) $this->project_id);
+        $events_to_delete = $q->loadColumn();
+
+        $q->clear();
+        $event = new CEvent();
+        $event->overrideDatabase($this->_query);
+        foreach ($events_to_delete as $event_id) {
+            $event->event_id = $event_id;
+            $event->delete();
+        }
+
+        $q->clear();
+        // remove the project-contacts and project-departments map
+        $q->setDelete('project_contacts');
+        $q->addWhere('project_id =' . (int) $this->project_id);
+        $q->exec();
+
+        $q->clear();
+        $q->setDelete('project_departments');
+        $q->addWhere('project_id =' . (int) $this->project_id);
+        $q->exec();
+
+        $q->clear();
+        $q->setDelete('tasks');
+        $q->addWhere('task_represents_project =' . (int) $this->project_id);
+
+        parent::hook_preDelete();
     }
 
     /** 	
@@ -326,6 +315,14 @@ class CProject extends w2p_Core_BaseObject
                 $delTask->task_id = $badTask;
                 $delTask->delete();
             }
+        } else {
+
+            // All is OK! Now update task cache
+            $numTasks = count($importedTasks);
+            $lastImportIndex = $numTasks-1;
+
+            // TODO Unsure if we should update the end date from tasks... Thoughts?
+            $this->updateTaskCache($this->project_id, $importedTasks[$lastImportIndex], $this->project_actual_end_date, $numTasks);
         }
         return $errors;
     }
@@ -548,12 +545,6 @@ class CProject extends w2p_Core_BaseObject
             $this->project_end_date = null;
         }
 
-        $this->_error = $this->check();
-
-        if (count($this->_error)) {
-            return $this->_error;
-        }
-
         $this->project_id = (int) $this->project_id;
         // convert dates to SQL format first
         if ($this->project_start_date) {
@@ -590,27 +581,19 @@ class CProject extends w2p_Core_BaseObject
          */
         $q = $this->_getQuery();
         $this->project_updated = $q->dbfnNowWithTZ();
-        if ($this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'edit', $this->{$this->_tbl_key})) {
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+        if ($this->{$this->_tbl_key} && $this->canEdit()) {
+            $stored = parent::store();
         }
-        if (0 == $this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'add')) {
+        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
             $this->project_created = $q->dbfnNowWithTZ();
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
+            $stored = parent::store();
+            
+            if ($stored) {
                 if (0 == $this->project_parent || 0 == $this->project_original_parent) {
                     $this->project_parent = $this->project_id;
                     $this->project_original_parent = $this->project_id;
-                    if (($msg = parent::store())) {
-                        $this->_error['store-check'] = $msg;
-                    } else {
-                        $stored = true;
-                    }
+//TODO: I *really* hate how we have to do the store() twice when we create the project.
+                    $stored = parent::store();
                 }
             }
         }
@@ -1029,6 +1012,7 @@ class CProject extends w2p_Core_BaseObject
         $q->addJoin('contacts', 'ct', 'contact_id = user_contact');
 //END: We can probably drop these lines, the fields are unneeded
         $q->addQuery('contact_display_name as contact_name');
+        $q->addQuery('contact_display_name as task_log_creator');
 		$q->addQuery('billingcode_name as task_log_costcode, billingcode_category');
 		$q->addJoin('tasks', 't', 'task_log_task = t.task_id');
 		

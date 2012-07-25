@@ -35,9 +35,9 @@ class w2p_Output_GanttRenderer {
     {
         $AppUI = $this->AppUI;
         $pLocale = setlocale(LC_TIME, 0); // get current locale for LC_TIME
-        $res = setlocale(LC_TIME, $AppUI->user_locale);
+        $res = setlocale(LC_TIME, $AppUI->user_lang[1]);
         if ($res) { // Setting locale doesn't fail
-            $this->graph->scale->SetDateLocale($AppUI->user_locale);
+            $this->graph->scale->SetDateLocale($AppUI->user_lang[1]);
         }
         setlocale(LC_TIME, $pLocale);
         $this->df = $AppUI->getPref('SHDATEFORMAT');
@@ -194,6 +194,8 @@ class w2p_Output_GanttRenderer {
             $bar->leftMark->SetFillColor('black');
 
             $bar->SetPattern(BAND_SOLID, 'black');
+
+            $bar->title->SetFont(FF_CUSTOM, FS_BOLD, 9);
         }
 
         //adding captions
@@ -216,7 +218,7 @@ class w2p_Output_GanttRenderer {
     }
 
     public function addMilestone(array $columnValues, $start,
-        $color = '#CC0000', $identifier = 0)
+        $color = '#CC0000', $identifier = 0, $captionToTheLeft=false)
     {
         $tStartObj = new w2p_Utilities_Date($start);
 
@@ -227,6 +229,11 @@ class w2p_Output_GanttRenderer {
         $bar->mark->SetWidth(10);
         $bar->mark->SetColor($color);
         $bar->mark->SetFillColor($color);
+
+        if ($captionToTheLeft) {
+            $bar->caption->Align("right", "center");
+            $bar->SetCaptionMargin(-15);
+        }
 
         $this->graph->Add($this->addDependencies($bar, $identifier));
     }

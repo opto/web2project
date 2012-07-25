@@ -26,7 +26,6 @@ $date = w2PgetParam($_GET, 'date', null);
 // get the passed timestamp (today if none)
 $event_project = (int) w2PgetParam($_GET, 'event_project', 0);
 
-
 // load the record data
 $obj = new CEvent();
 
@@ -39,7 +38,7 @@ if ($is_clash) {
 		$AppUI->redirect();
 	}
 }
-$obj->event_project = $event_project;
+$obj->event_project = ($event_project) ? $event_project : $obj->event_project;
 
 // load the event types
 $types = w2PgetSysVal('EventType');
@@ -150,9 +149,9 @@ for ($minutes = 0; $minutes < ((24 * 60) / $inc); $minutes++) {
 <script language="javascript" type="text/javascript">
 function submitIt(){
 	var form = document.editFrm;
-	if (form.event_title.value.length < 1) {
+	if (form.event_name.value.length < 1) {
 		alert('<?php echo $AppUI->_('Please enter a valid event title', UI_OUTPUT_JS); ?>');
-		form.event_title.focus();
+		form.event_name.focus();
 		return;
 	}
 	if (form.event_start_date.value.length < 1){
@@ -184,24 +183,6 @@ function submitIt(){
 		users.value += assigned.options[i].value;
 	}
 	form.submit();
-}
-
-function setDate( frm_name, f_date ) {
-	fld_date = eval( 'document.' + frm_name + '.' + f_date );
-	fld_real_date = eval( 'document.' + frm_name + '.' + 'event_' + f_date );
-	if (fld_date.value.length>0) {
-      if ((parseDate(fld_date.value))==null) {
-            alert('The Date/Time you typed does not match your prefered format, please retype.');
-            fld_real_date.value = '';
-            fld_date.style.backgroundColor = 'red';
-        } else {
-        	fld_real_date.value = formatDate(parseDate(fld_date.value), 'yyyyMMdd');
-        	fld_date.value = formatDate(parseDate(fld_date.value), "<?php echo $cal_sdf ?>");
-            fld_date.style.backgroundColor = '';
-  		}
-	} else {
-      	fld_real_date.value = '';
-	}
 }
 
 function addUser() {
@@ -244,6 +225,8 @@ function removeUser() {
 	<input type="hidden" name="dosql" value="do_event_aed" />
 	<input type="hidden" name="event_id" value="<?php echo $event_id; ?>" />
 	<input type="hidden" name="event_assigned" value="" />
+    <input type="hidden" name="datePicker" value="event" />
+
 <table border="0" cellpadding="4" cellspacing="0" width="100%" class="std addedit">
 <tr>
 	<td colspan="2">
@@ -251,7 +234,7 @@ function removeUser() {
 			<tr>
 				<td width="20%" align="right" nowrap="nowrap"><?php echo $AppUI->_('Event Title'); ?>:</td>
 				<td width="20%">
-					<input type="text" class="text" size="25" name="event_title" value="<?php echo $obj->event_title; ?>" maxlength="255" />
+					<input type="text" class="text" size="25" name="event_name" value="<?php echo $obj->event_name; ?>" maxlength="255" />
 				</td>
 				<td align="left" rowspan="4" valign="top" colspan="2" width="40%">
 					<?php echo $AppUI->_('Description'); ?> :<br/>
@@ -270,7 +253,7 @@ function removeUser() {
 				<td align="right"><?php echo $AppUI->_('Project'); ?>:</td>
 				<td>
 					<?php
-					echo arraySelect($projects, 'event_project', 'size="1" class="text"', ($obj->event_project ? $obj->event_project : 0));
+					echo arraySelect($projects, 'event_project', 'size="1" class="text"', $obj->event_project);
 					?>
 				</td>
 			</tr>
@@ -292,8 +275,8 @@ function removeUser() {
 				<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Start Date'); ?>:</td>
 				<td nowrap="nowrap">
 					<input type="hidden" name="event_start_date" id="event_start_date" value="<?php echo $start_date ? $start_date->format(FMT_TIMESTAMP_DATE) : ''; ?>" />
-					<input type="text" name="start_date" id="start_date" onchange="setDate('editFrm', 'start_date');" value="<?php echo $start_date ? $start_date->format($df) : ''; ?>" class="text" />
-					<a href="javascript: void(0);" onclick="return showCalendar('start_date', '<?php echo $df ?>', 'editFrm', null, true)">
+					<input type="text" name="start_date" id="start_date" onchange="setDate_new('editFrm', 'start_date');" value="<?php echo $start_date ? $start_date->format($df) : ''; ?>" class="text" />
+					<a href="javascript: void(0);" onclick="return showCalendar('start_date', '<?php echo $df ?>', 'editFrm', null, true, true)">
 						<img src="<?php echo w2PfindImage('calendar.gif'); ?>" width="24" height="12" alt="<?php echo $AppUI->_('Calendar'); ?>" border="0" />
 					</a>
 				</td>
@@ -307,8 +290,8 @@ function removeUser() {
 				<td align="right" nowrap="nowrap"><?php echo $AppUI->_('End Date'); ?>:</td>
 				<td nowrap="nowrap">
 					<input type="hidden" name="event_end_date" id="event_end_date" value="<?php echo $end_date ? $end_date->format(FMT_TIMESTAMP_DATE) : ''; ?>" />
-					<input type="text" name="end_date" id="end_date" onchange="setDate('editFrm', 'end_date');" value="<?php echo $end_date ? $end_date->format($df) : ''; ?>" class="text" />
-					<a href="javascript: void(0);" onclick="return showCalendar('end_date', '<?php echo $df ?>', 'editFrm', null, true)">
+					<input type="text" name="end_date" id="end_date" onchange="setDate_new('editFrm', 'end_date');" value="<?php echo $end_date ? $end_date->format($df) : ''; ?>" class="text" />
+					<a href="javascript: void(0);" onclick="return showCalendar('end_date', '<?php echo $df ?>', 'editFrm', null, true, true)">
 						<img src="<?php echo w2PfindImage('calendar.gif'); ?>" width="24" height="12" alt="<?php echo $AppUI->_('Calendar'); ?>" border="0" />
 					</a>
 				</td>

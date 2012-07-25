@@ -5,6 +5,7 @@
  * @subpackage utilites
  */
 
+$AppUI = is_object($AppUI) ? $AppUI : new w2p_Core_CAppUI();
 require_once $AppUI->getLibraryClass('PEAR/Date');
 
 define('FMT_DATEISO', '%Y%m%dT%H%M%S');
@@ -39,7 +40,7 @@ class w2p_Utilities_Date extends Date {
 		parent::__construct($datetime);
 		if ($tz == '')
 		{
-			$this->setTZ(date_default_timezone_get());
+			$this->setTZ(w2PgetConfig('system_timezone', 'Europe/London'));
 		} else
 		{
 			$this->setTZ($tz);

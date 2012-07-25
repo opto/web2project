@@ -13,7 +13,7 @@ full text of this license is included in LICENSE.
 web2Project is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+Clear BSD License for more details.
 
 */
 
@@ -34,11 +34,6 @@ if (is_file(W2P_BASE_DIR . '/includes/config.php') && filesize(W2P_BASE_DIR . '/
 	exit();
 }
 
-if (!isset($GLOBALS['OS_WIN'])) {
-	$GLOBALS['OS_WIN'] = (stristr(PHP_OS, 'WIN') !== false);
-}
-
-// tweak for pathname consistence on windows machines
 require_once W2P_BASE_DIR . '/includes/main_functions.php';
 require_once W2P_BASE_DIR . '/includes/db_adodb.php';
 require_once W2P_BASE_DIR . '/includes/session.php';
@@ -162,6 +157,10 @@ $AppUI->setUserLocale();
 // bring in the rest of the support and localisation files
 $perms = &$AppUI->acl();
 
+/*
+ * TODO: We should validate that the module identified by $m is actually
+ *   installed & active. If not, we should go back to the defaults.
+ */
 $def_a = 'index';
 if (!isset($_GET['m']) && !empty($w2Pconfig['default_view_m'])) {
 	if (!$perms->checkModule($w2Pconfig['default_view_m'], 'view', $AppUI->user_id)) {

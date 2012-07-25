@@ -84,35 +84,21 @@ class CLink extends w2p_Core_BaseObject
         return $q->loadList();
     }
 
-    public function check()
+    public function isValid()
     {
-        // ensure the integrity of some variables
-        $errorArray = array();
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
         if ('' == trim($this->link_name)) {
-            $errorArray['link_name'] = $baseErrorMsg . 'link name is not set';
+            $this->_error['link_name'] = $baseErrorMsg . 'link name is not set';
         }
         if (7 >= strlen(trim($this->link_url))) {
-            $errorArray['link_url'] = $baseErrorMsg . 'link url is not set';
+            $this->_error['link_url'] = $baseErrorMsg . 'link url is not set';
         }
         if (0 == (int) $this->link_owner) {
-            $errorArray['link_owner'] = $baseErrorMsg . 'link owner is not set';
+            $this->_error['link_owner'] = $baseErrorMsg . 'link owner is not set';
         }
 
-        $this->_error = $errorArray;
-        return $errorArray;
-    }
-
-    public function delete()
-    {
-        if ($this->_perms->checkModuleItem($this->_tbl_module, 'delete', $this->{$this->_tbl_key})) {
-            if ($msg = parent::delete()) {
-                return $msg;
-            }
-            return true;
-        }
-        return false;
+        return (count($this->_error)) ? false : true;
     }
 
     public function store()
@@ -123,30 +109,17 @@ class CLink extends w2p_Core_BaseObject
             $this->link_url = 'http://' . $this->link_url;
         }
 
-        $this->_error = $this->check();
-
-        if (count($this->_error)) {
-            return $this->_error;
-        }
         /*
          * TODO: I don't like the duplication on each of these two branches, but I
          *   don't have a good idea on how to fix it at the moment...
          */
         $q = $this->_getQuery();
         $this->link_date = $q->dbfnNowWithTZ();
-        if ($this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'edit', $this->{$this->_tbl_key})) {
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+        if ($this->{$this->_tbl_key} && $this->canEdit()) {
+            $stored = parent::store();
         }
-        if (0 == $this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'add')) {
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
+            $stored = parent::store();
         }
         return $stored;
     }

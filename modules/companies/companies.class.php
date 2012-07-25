@@ -47,22 +47,20 @@ class CCompany extends w2p_Core_BaseObject {
 	  parent::__construct('companies', 'company_id');
 	}
 
-	// overload check
-	public function check() {
-	  $errorArray = array();
-	  $baseErrorMsg = get_class($this) . '::store-check failed - ';
+    public function isValid()
+    {
+        $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
-	  if ('' == trim($this->company_name)) {
-	    $errorArray['company_name'] = $baseErrorMsg . 'company name is not set';
-	  }
-	  if ((int) $this->company_owner == 0) {
-    	$errorArray['company_owner'] = $baseErrorMsg . 'company owner is not set';
-	  }
+        if ('' == trim($this->company_name)) {
+            $this->_error['company_name'] = $baseErrorMsg . 'company name is not set';
+        }
+        if ((int) $this->company_owner == 0) {
+            $this->_error['company_owner'] = $baseErrorMsg . 'company owner is not set';
+        }
 
-      $this->_error = $errorArray;
-	  return $errorArray;
-	}
-
+        return (count($this->_error)) ? false : true;
+    }
+    
 	// overload canDelete
 	public function canDelete($msg = '', $oid = null, $joins = null) {
 		$tables[] = array('label' => 'Projects', 'name' => 'projects', 'idfield' => 'project_id', 'joinfield' => 'project_company');
@@ -72,43 +70,19 @@ class CCompany extends w2p_Core_BaseObject {
 		return parent::canDelete($msg, $oid, $tables);
 	}
 
-    public function delete() {
-        if ($this->_perms->checkModuleItem($this->_tbl_module, 'delete', $this->{$this->_tbl_key})) {
-            if ($msg = parent::delete()) {
-                return $msg;
-            }
-            return true;
-        }
-        return false;
-    }
-
     public function store() {
         $stored = false;
-
-        $this->_error = $this->check();
-
-        if (count($this->_error)) {
-            return $this->_error;
-        }
 
         $this->company_id = (int) $this->company_id;
         /*
          * TODO: I don't like the duplication on each of these two branches, but I
          *   don't have a good idea on how to fix it at the moment...
          */
-        if ($this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'edit', $this->{$this->_tbl_key})) {
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+        if ($this->{$this->_tbl_key} && $this->canEdit()) {
+            $stored = parent::store();
         }
-        if (0 == $this->{$this->_tbl_key} && $this->_perms->checkModuleItem($this->_tbl_module, 'add')) {
-            if (($msg = parent::store())) {
-                $this->_error['store'] = $msg;
-            } else {
-                $stored = true;
-            }
+        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
+            $stored = parent::store();
         }
 
         return $stored;
@@ -189,7 +163,7 @@ class CCompany extends w2p_Core_BaseObject {
 
 	public static function getProjects(w2p_Core_CAppUI $AppUI, $companyId, $active = 1, $sort = 'project_name') {
 		$fields = 'DISTINCT pr.project_id, pr.*, contact_first_name, ' .
-                'contact_last_name, contact_display_name as contact_name';
+                'contact_last_name, contact_display_name as contact_name, contact_display_name as project_owner';
 
 		$q = new w2p_Database_Query();
 		$q->addTable('projects', 'pr');
@@ -215,9 +189,8 @@ class CCompany extends w2p_Core_BaseObject {
 
 	public static function getContacts(w2p_Core_CAppUI $AppUI, $companyId) {
 		$results = array();
-		$perms = $AppUI->acl();
 
-		if ($AppUI->isActiveModule('contacts') && canView('contacts') && (int) $companyId > 0) {
+        if ($AppUI->isActiveModule('contacts') && canView('contacts') && (int) $companyId > 0) {
 			$q = new w2p_Database_Query();
 			$q->addQuery('c.*');
             $q->addQuery('c.contact_display_name as contact_name');
@@ -263,8 +236,6 @@ class CCompany extends w2p_Core_BaseObject {
 	}
 
 	public static function getDepartments(w2p_Core_CAppUI $AppUI, $companyId) {
-		$perms = $AppUI->acl();
-
 		if ($AppUI->isActiveModule('departments') && canView('departments')) {
 			$q = new w2p_Database_Query();
 			$q->addTable('departments');
