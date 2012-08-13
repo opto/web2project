@@ -4,6 +4,7 @@
 ##
 
 $event_filter_list = array('my' => 'My Events', 'own' => 'Events I Created', 'all' => 'All Events');
+// notify-email: multipart email and itip/imip invitation added (c) by opto
 
 /**
  * Event Class
@@ -361,7 +362,67 @@ class CEvent extends w2p_Core_BaseObject
 		}
 	}
 
-	public function notify($assignees, $update = false, $clash = false) {
+    // TODO: This should get a review once we can make 5.3 our minimum version.
+    private function formatDate($mysqlDate) {
+        $myDate = new DateTime($mysqlDate);
+
+        $timestamp = strtotime($mysqlDate);
+        // The following line checks to see if the date is in DST range.
+        $timestamp -= $myDate->format('I')*60*60;
+        $myDatetime = date('Ymd His', $timestamp);
+        $myDatetime = str_replace(' ', 'T', $myDatetime).'Z';
+
+        return $myDatetime;
+    }
+
+        
+        
+	public function formatEventAsImipIcal($owner, $users = NULL) {
+        global $AppUI;
+
+        $name = $this->event_name;
+//        $uid = (isset( $calendarItem['UID'])) ? $calendarItem['UID'] : $module_name.'_'.$calendarItem['id'];
+        $uid="event".$this->event_id.'_'.W2P_BASE_URL;
+        $description = '  \r\n';
+        $attachments = '';
+        $attachments .= 'ATTACH;VALUE=URL:' . W2P_BASE_URL . '/index.php?m=calendar&a=view&event_id=' . $this->event_id . "\r\n";
+        $eventURL= W2P_BASE_URL . '/index.php?m=calendar&a=view&event_id=' . $this->event_id ;
+     //   $description .= '----------------------------------------\r\n';
+//        $description .= $AppUI->_('Description');
+//        $description .= '\r\n----------------------------------------\r\n';
+        if ($this->event_project) {
+            $description .= $AppUI->_('Project') . ': ' . $this->event_project.'\r\n';
+            $attachments .= 'ATTACH;VALUE=URL:' . W2P_BASE_URL . '/index.php?m=projects&a=view&project_id=' . $this->event_project . "\r\n";
+        }
+        $description .= strtr($this->event_description, array("\n" => '\n', "\r\n" =>'\r\n'));
+        $description .= '\r\n'.$AppUI->_("Contacts").':\r\n';
+        foreach ($users as $user) {
+            $description.=$user[contact_name]."  ";
+        }
+        $description .= '\r\n----------------------------------------\r\n';
+        $description .= $eventURL;
+     //   $description .= '\r\n----------------------------------------\r\n';
+        $startDate = $this->formatDate($this->event_start_date);
+        $endDate = $this->formatDate($this->event_end_date);
+        $updatedDate = $this->formatDate($this->event_updated);
+        $sequence = 0;
+
+        $eventItem = "BEGIN:VEVENT\r\nDTSTART;VALUE=DATE-TIME:{$startDate}\r\nDTEND;VALUE=DATE-TIME:{$endDate}\r\nUID:{$uid}\r\nSUMMARY:{$name}\r\nDESCRIPTION:{$description}\r\n{$attachments}\r\nDTSTAMP:{$updatedDate}\r\nSEQUENCE:{$sequence}\r\n"
+        ."ORGANIZER:mailto:$owner[contact_email]\r\n";
+         foreach ($users as $user) {
+            if ($user[contact_email] !=$owner[contact_email])
+                    $eventItem.="ATTENDEE:mailto:$user[contact_email]\r\n  ";
+        }
+       
+        $eventItem.="LOCATION:\r\nEND:VEVENT\r\n";
+//add  private, recurrence
+        return $eventItem;
+        }        
+        
+        
+        
+        public function notify($assignees, $update = false, $clash = false) {
+            // multipart email and itip/imip invitation added (c) by opto
 		global $locale_char_set, $w2Pconfig;
 
 		$mail_owner = $this->_AppUI->getPref('MAILALL');
@@ -388,8 +449,26 @@ class CEvent extends w2p_Core_BaseObject
         $q->addWhere('u.user_contact = con.contact_id');
         $q->addWhere('user_id in (' . implode(',', $assignee_list) . ')');
         $users = $q->loadHashList('user_id');
+        $event_owner=$users[$this->event_owner];
+        $itipbody=$this->formatEventAsImipIcal($event_owner,$users);
+        $calendarHeader = "BEGIN:VCALENDAR\nPRODID:-//web2project//EN\nVERSION:2.0\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\nX-WR-TIMEZONE:Europe/London\n";
+        $calendarFooter = "END:VCALENDAR";
+        $itipbody=$calendarHeader.$itipbody.$calendarFooter."\r\n";
 
         $mail = new w2p_Utilities_Mail();
+        $mail->ContentType='multipart/mixed;boundary="Boundary_(ID_qyG4ZdjoAsiZ+Jo19dCbWQ)"';
+        $mbody1='--Boundary_(ID_qyG4ZdjoAsiZ+Jo19dCbWQ)
+
+';
+        $mbodyEvent="";
+//  \r\n is not recognised by Thunderbird, therefore linefeeds are created by newlines in code
+        $mbody2='--Boundary_(ID_qyG4ZdjoAsiZ+Jo19dCbWQ)
+Content-type: text/calendar; method=PUBLISH; charset=UTF-8
+Content-transfer-encoding: 8BIT
+
+';
+        $mbodyEnd='--Boundary_(ID_qyG4ZdjoAsiZ+Jo19dCbWQ)--';
+
         $type = $update ? $this->_AppUI->_('Updated') : $this->_AppUI->_('New');
         if ($clash) {
             $mail->Subject($this->_AppUI->_('Requested Event') . ': ' . $this->event_name, $locale_char_set);
@@ -400,7 +479,7 @@ class CEvent extends w2p_Core_BaseObject
         $emailManager = new w2p_Output_EmailManager($this->_AppUI);
         $body = $emailManager->getEventNotify($this, $clash, $users, $types);
 
-        $mail->Body($body, $locale_char_set);
+        $mail->Body($mbody2.$itipbody.$mbody1.$body.$mbodyEnd, $locale_char_set);
         foreach ($users as $user) {
             if (!$mail_owner && $user['user_id'] == $this->event_owner) {
                 continue;

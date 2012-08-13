@@ -15,6 +15,10 @@
  *
  */
 
+
+//see also CEvent::formatEventAsImipIcal($owner, $users = NULL)
+// in calendar.class.php
+
 class w2p_API_iCalendar {
 
     public static function formatCalendarItem($calendarItem, $module_name) {
