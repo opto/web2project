@@ -1,4 +1,19 @@
 <?php /* $Id$ $URL$ */
+/*
+Dayplanner v1.0.0
+Klaus Buecher
+   
+
+LICENSE
+
+=====================================
+
+The Dayplanner module was built by Klaus Buecher and is released here
+under modified BSD license (see GNU.org).
+
+Copyright (c) 2012 Klaus Buecher (Opto)
+
+*/
 if (!defined('W2P_BASE_DIR')) {
 	die('You should not access this file directly.');
 }
