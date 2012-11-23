@@ -20,7 +20,7 @@
  */
 
 // NOTE: This path is relative to Phing's build.xml, not this test.
-include_once 'CommonSetup.php';
+include_once 'unit_tests/CommonSetup.php';
 
 class CUsers_Test extends CommonSetup
 {
@@ -54,30 +54,9 @@ class CUsers_Test extends CommonSetup
       );
     }
 
-    /**
-     * Tests the Attributes of a new CUsers object.
-     */
-    public function testAttributes()
+    public function testObjectProperties()
     {
-        $this->assertInstanceOf('CUser',            $this->obj);
-        $this->assertObjectHasAttribute('user_username',  $this->obj);
-        $this->assertObjectHasAttribute('user_password',  $this->obj);
-        $this->assertObjectHasAttribute('user_type',      $this->obj);
-        $this->assertObjectHasAttribute('user_contact',   $this->obj);
-        $this->assertObjectHasAttribute('user_signature', $this->obj);
-    }
-
-    /**
-     * Tests the Attribute Values of a new Link object.
-     */
-    public function testAttributeValues()
-    {
-        $this->assertInstanceOf('CUser',            $this->obj);
-        $this->assertNull($this->obj->user_username);
-        $this->assertNull($this->obj->user_password);
-        $this->assertNull($this->obj->user_type);
-        $this->assertNull($this->obj->user_contact);
-        $this->assertNull($this->obj->user_signature);
+        parent::objectPropertiesTest('CUser', 7);
     }
 
     /**
@@ -88,14 +67,12 @@ class CUsers_Test extends CommonSetup
     {
         unset($this->post_data['user_password']);
         $this->obj->bind($this->post_data);
-        $this->obj->store();
 
-        /**
-        * Verify we got the proper error message
-        */
-        $errorArray = $this->obj->getError();
-        $this->assertEquals(1,                    count($errorArray));
-        $this->assertArrayHasKey('user_password', $errorArray);
+		/**
+		 * Verify we got the proper error message
+		 */
+        $this->assertFalse($this->obj->store());
+        $this->assertArrayHasKey('user_password', $this->obj->getError());
 
         /**
         * Verify that user_id was not set

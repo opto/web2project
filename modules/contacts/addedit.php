@@ -7,6 +7,32 @@ $contact_id = (int) w2PgetParam($_GET, 'contact_id', 0);
 $company_id = (int) w2PgetParam($_GET, 'company_id', $AppUI->user_company);
 $dept_id = (int) w2PgetParam($_GET, 'dept_id', 0);
 
+
+$row = new CContact();
+$row->contact_id = $contact_id;
+
+$obj = $row;
+$canAddEdit = $obj->canAddEdit();
+$canAuthor = $obj->canCreate();
+$canEdit = $obj->canEdit();
+if (!$canAddEdit) {
+	$AppUI->redirect(ACCESS_DENIED);
+}
+
+// load the record data
+$obj = $AppUI->restoreObject();
+if ($obj) {
+    $row = $obj;
+    $contact_id = $row->contact_id;
+} else {
+    $row->loadFull(null, $contact_id);
+}
+if (!$row && $contact_id > 0) {
+    $AppUI->setMsg('Contact');
+    $AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
+    $AppUI->redirect();
+}
+
 $company = new CCompany();
 $company->load($company_id);
 $company_name = $company->company_name;
@@ -15,49 +41,21 @@ $dept = new CDepartment();
 $dept->load($dept_id);
 $dept_name = $dept->dept_name;
 
-// check permissions for this record
-$perms = &$AppUI->acl();
-$canAuthor = canAdd('contacts');
-$canEdit = $perms->checkModuleItem('contacts', 'edit', $contact_id);
-
-// check permissions
-if (!$canAuthor && !$contact_id) {
-	$AppUI->redirect('m=public&a=access_denied');
-}
-
-if (!$canEdit && $contact_id) {
-	$AppUI->redirect('m=public&a=access_denied');
-}
-
-if ($msg == $AppUI->_('contactsDeleteUserError', UI_OUTPUT_JS)) {
-	$userDeleteProtect = true;
-}
-
-// load the record data
-$row = new CContact();
-$obj = $AppUI->restoreObject();
-if ($obj) {
-  $row = $obj;
-  $contact_id = $row->contact_id;
-} else {
-  $row->loadFull(null, $contact_id);
-}
-if (!$row && $contact_id > 0) {
-    $AppUI->setMsg('Contact');
-    $AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
-    $AppUI->redirect();
-}
-
-$canDelete = $row->canDelete($msg, $contact_id);
 $is_user = $row->isUser($contact_id);
 
 $df = $AppUI->getPref('SHDATEFORMAT');
 $df .= ' ' . $AppUI->getPref('TIMEFORMAT');
 
+
+
+
+
+
 // setup the title block
 $ttl = $contact_id > 0 ? 'Edit Contact' : 'Add Contact';
 $titleBlock = new w2p_Theme_TitleBlock($ttl, 'monkeychat-48.png', $m, $m . '.' . $a);
 $titleBlock->addCrumb('?m=contacts', 'contacts list');
+$canDelete = $row->canDelete();
 if ($canDelete && $contact_id) {
 	$titleBlock->addCrumbDelete('delete contact', $canDelete, $msg);
 }
@@ -179,7 +177,7 @@ function companyChange() {
 	var f = document.changecontact;
 	if ( f.contact_company.value != window.company_value ){
 		f.contact_department.value = '';
-	} 
+	}
 }
 
 function updateVerify() {
@@ -206,7 +204,7 @@ function addContactMethod(field, value) {
 
     /* Create select menu for contact method type */
     function addOption(select, value, text, selected) {
-        var option = document.createElement('option'); 
+        var option = document.createElement('option');
         option.setAttribute("value", value);
         option.innerHTML = text;
         option.selected = (value == selected);
@@ -221,10 +219,10 @@ function addContactMethod(field, value) {
     /* Add text field for the contact method value to the table row */
     $('#contact_methods_' + index + '_').append('<td><input type="text" name="contact_methods[value][' + index + ']" size="25" maxlength="255" class="text" value="' + (value ? value : "") + '" /><?php echo w2PtoolTip('Contact Method', 'Remove') ?><a id="remove_contact_method" href="javascript:removeContactMethod(\'' + index + '\')"><img src="<?php echo w2PfindImage('icons/remove.png'); ?>" style="border: 0;" alt="" /></a><?php echo w2PendTip() ?></td>');
     addOption('#method_select_' + index, "", "");
-    <?php foreach ($methodLabels as $value => $text): ?> 
+    <?php foreach ($methodLabels as $value => $text): ?>
     addOption('#method_select_' + index, "<?php echo $value; ?>", "<?php echo $text; ?>", field);
     <?php endforeach; ?>
-    /* Make sure the newly added remove span has its tooltip working*/ 
+    /* Make sure the newly added remove span has its tooltip working*/
     $("span").tipTip({maxWidth: "auto", delay: 200, fadeIn: 150, fadeOut: 150});
 }
 

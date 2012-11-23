@@ -8,17 +8,14 @@ $AppUI->loadCalendarJS();
 $event_id = intval(w2PgetParam($_GET, 'event_id', 0));
 $is_clash = isset($_SESSION['event_is_clash']) ? $_SESSION['event_is_clash'] : false;
 
-$perms = &$AppUI->acl();
-$canAuthor = canAdd('calendar');
-$canEdit = $perms->checkModuleItem('calendar', 'edit', $event_id);
+$obj = new CEvent();
+$obj->event_id = $event_id;
 
-// check permissions
-if (!$canAuthor && !$event_id) {
-	$AppUI->redirect('m=public&a=access_denied');
-}
-
-if (!$canEdit && $event_id) {
-	$AppUI->redirect('m=public&a=access_denied');
+$canAddEdit = $obj->canAddEdit();
+$canAuthor = $obj->canCreate();
+$canEdit = $obj->canEdit();
+if (!$canAddEdit) {
+	$AppUI->redirect(ACCESS_DENIED);
 }
 
 // get the passed timestamp (today if none)
@@ -27,8 +24,6 @@ $date = w2PgetParam($_GET, 'date', null);
 $event_project = (int) w2PgetParam($_GET, 'event_project', 0);
 
 // load the record data
-$obj = new CEvent();
-
 if ($is_clash) {
 	$obj->bind($_SESSION['add_event_post']);
 } else {
@@ -44,6 +39,7 @@ $obj->event_project = ($event_project) ? $event_project : $obj->event_project;
 $types = w2PgetSysVal('EventType');
 
 // Load the users
+$perms = &$AppUI->acl();
 $users = $perms->getPermittedUsers('calendar');
 
 // Load the assignees
@@ -72,7 +68,7 @@ if ($is_clash) {
 
 //check if the user has view permission over the project
 if ($obj->event_project && !$perms->checkModuleItem('projects', 'view', $obj->event_project)) {
-	$AppUI->redirect('m=public&a=access_denied');
+	$AppUI->redirect(ACCESS_DENIED);
 }
 
 // setup the title block

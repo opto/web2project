@@ -161,6 +161,9 @@ if (count($fields) > 0) {
 		$none = true;
 		$projectArray = array();
 
+        $project_types = w2PgetSysVal('ProjectType');
+        $customLookups = array('project_status' => $project_statuses, 'project_type' => $project_types);
+
 		for ($i = ($page - 1) * $xpg_pagesize; $i < $page * $xpg_pagesize && $i < $xpg_totalrecs; $i++) {
 			$row = $projects[$i];
 			if (($show_all_projects || ($row['project_active'] && $row['project_status'] == $project_status_filter) && $is_tabbed) || //tabbed view
@@ -168,18 +171,20 @@ if (count($fields) > 0) {
 				((!$row['project_active'] && $project_status_filter == -3) && !$is_tabbed) //flat archived projects
 				) {
 
+                $tmpProject = new CProject();
+
 				$st_projects_arr = array();
 				if ($row['project_id'] == $row['project_original_parent']) {
-					if ($project_status_filter == -2) {
-						$structprojects = getStructuredProjects($row['project_original_parent'], '-1', true);
+					$tmpProject->project_original_parent = $row['project_original_parent'];
+                    $tmpProject->project_status = -1;
+                    if ($project_status_filter == -2) {
+						$st_projects_arr = $tmpProject->getStructuredProjects(true);
 					} else {
-						$structprojects = getStructuredProjects($row['project_original_parent'], '-1');
+						$st_projects_arr = $tmpProject->getStructuredProjects();
 					}
 				} else {
 					$st_projects_arr[0][1] = 0;
 				}
-
-				$tmpProject = new CProject();
 
                 $htmlHelper = new w2p_Output_HTMLHelper($AppUI);
 				foreach ($st_projects_arr as $st_project) {
@@ -244,7 +249,9 @@ if (count($fields) > 0) {
                                 $s .= '</td>';
                                 break;
                             case 'department_list':
-                                $dept_array = CProject::getDepartments($AppUI, $row['project_id']);
+                            case 'project_departments':
+                                $tmpProject->project_id = $row['project_id'];
+                                $dept_array = $tmpProject->getDepartmentList();
                                 $s .= '<td class="data _list">';
                                 foreach ($dept_array as $dept) {
                                     $s .= '<a href="?m=departments&a=view&dept_id='.$dept['dept_id'].'">';
@@ -255,7 +262,7 @@ if (count($fields) > 0) {
                                 $s .= '</td>';
                                 break;
                             default:
-                                $s .= $htmlHelper->createCell($field, $row[$field]);
+                                $s .= $htmlHelper->createCell($field, $row[$field], $customLookups);
                         }
                     }
 
@@ -279,7 +286,7 @@ if (count($fields) > 0) {
 			}
 		}
 		if ($none) {
-			echo '<tr><td colspan="25">' . $AppUI->_('No projects available') . '</td></tr>';
+			echo '<tr><td colspan="25">' . $AppUI->_('No projects to display for this Company, Owner and Type, or your Search returned no results. Please check the filters above and try again.') . '</td></tr>';
 		} else {
 			?>
 				<tr>

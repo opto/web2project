@@ -25,7 +25,7 @@ class CLink extends w2p_Core_BaseObject
         parent::__construct('links', 'link_id');
     }
 
-    public function loadFull($AppUI = null, $link_id)
+    public function loadFull($notUsed = null, $link_id)
     {
 
         $q = $this->_getQuery();
@@ -43,7 +43,7 @@ class CLink extends w2p_Core_BaseObject
         $q->loadObject($this, true, false);
     }
 
-    public function getProjectTaskLinksByCategory($AppUI = null, $project_id = 0, $task_id = 0, $category_id = 0, $search = '')
+    public function getProjectTaskLinksByCategory($notUsed = null, $project_id = 0, $task_id = 0, $category_id = 0, $search = '')
     {
         // load the following classes to retrieved denied records
 
@@ -101,27 +101,14 @@ class CLink extends w2p_Core_BaseObject
         return (count($this->_error)) ? false : true;
     }
 
-    public function store()
+    protected function hook_preStore()
     {
-        $stored = false;
+        $q = $this->_getQuery();
+        $this->link_date = $q->dbfnNowWithTZ();
 
         if (strpos($this->link_url, ':') === false && strpos($this->link_url, "//") === false) {
             $this->link_url = 'http://' . $this->link_url;
         }
-
-        /*
-         * TODO: I don't like the duplication on each of these two branches, but I
-         *   don't have a good idea on how to fix it at the moment...
-         */
-        $q = $this->_getQuery();
-        $this->link_date = $q->dbfnNowWithTZ();
-        if ($this->{$this->_tbl_key} && $this->canEdit()) {
-            $stored = parent::store();
-        }
-        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
-            $stored = parent::store();
-        }
-        return $stored;
     }
 
     public function hook_search()

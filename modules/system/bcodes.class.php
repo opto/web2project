@@ -4,13 +4,13 @@ class CSystem_Bcode extends w2p_Core_BaseObject
 {
 
     public $_billingcode_id = null;
-    public $billingcode_company = 0;
+    public $billingcode_company = null;
     public $billingcode_id = null;
     public $billingcode_desc = null;
     public $billingcode_name = null;
     public $billingcode_value = null;
     public $billingcode_status = null;
-    public $billingcode_category = '';
+    public $billingcode_category = null;
 
     public function __construct()
     {
@@ -34,10 +34,25 @@ class CSystem_Bcode extends w2p_Core_BaseObject
 
             $result = $q->exec();
             if(!$result) {
-                $this->_errors[] = db_error();
+                $this->_errors['delete'] = db_error();
             }
         }
         return $result;
+    }
+
+    public function canDelete()
+    {
+        return $this->_perms->checkModuleItem('system', 'delete');
+    }
+
+    public function canEdit()
+    {
+        return canEdit('system');
+    }
+
+    public function canCreate()
+    {
+        return canAdd('system');
     }
 
     public function store()
@@ -60,9 +75,11 @@ class CSystem_Bcode extends w2p_Core_BaseObject
         $q->addTable('billingcode');
         $q->addWhere('billingcode_name = \'' . $this->billingcode_name . '\'');
         $q->addWhere('billingcode_company = ' . (int) $this->billingcode_company);
+        $q->addWhere('billingcode_id <> ' . (int) $this->billingcode_id);
 
         $found_id = $q->loadResult();
-        if ($found_id && $found_id != $this->billingcode_id) {
+
+        if ($found_id) {
             $this->_error['billingcode_name'] = $baseErrorMsg . 'code already exists';
         }
 
@@ -97,13 +114,9 @@ class CSystem_Bcode extends w2p_Core_BaseObject
             $q->addWhere("tl.task_log_date >= '$start_date'");
             $q->addWhere("tl.task_log_date <= '$end_date'");
         }
-
         $logs = $q->loadList();
 
-        $actualCost = 0;
-        $uncountedHours = 0;
         $results = array();
-
         foreach ($logs as $tasklog) {
             if (is_null($tasklog['billingcode_value'])) {
                 $results['uncountedHours'] += $tasklog['task_log_hours'];
@@ -131,10 +144,7 @@ class CSystem_Bcode extends w2p_Core_BaseObject
         }
         $logs = $q->loadList();
 
-        $actualCost = 0;
-        $uncountedHours = 0;
         $results = array();
-
         foreach ($logs as $tasklog) {
             if (is_null($tasklog['billingcode_value'])) {
                 $results['uncountedHours'] += $tasklog['task_log_hours'];

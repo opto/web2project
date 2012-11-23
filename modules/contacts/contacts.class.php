@@ -18,12 +18,12 @@ class CContact extends w2p_Core_BaseObject
 
     /**
       @public string */
-    public $contact_first_name = '';
+    public $contact_first_name = null;
 
     /**
       @public string */
-    public $contact_last_name = '';
-    public $contact_display_name = '';
+    public $contact_last_name = null;
+    public $contact_display_name = null;
     public $contact_title = null;
     public $contact_job = null;
     public $contact_birthday = null;
@@ -53,7 +53,7 @@ class CContact extends w2p_Core_BaseObject
         parent::__construct('contacts', 'contact_id');
     }
 
-    public function loadFull($AppUI = null, $contactId)
+    public function loadFull($notUsed = null, $contactId)
     {
         $q = $this->_getQuery();
         $q->addTable('contacts');
@@ -62,10 +62,7 @@ class CContact extends w2p_Core_BaseObject
         $q->loadObject($this, true, false);
     }
 
-    public function store()
-    {
-        $stored = false;
-
+    protected function hook_preStore() {
         $this->contact_company = (int) $this->contact_company;
         $this->contact_department = (int) $this->contact_department;
         $this->contact_owner = ((int) $this->contact_owner) ? (int) $this->contact_owner : (int) $this->_AppUI->user_id;
@@ -92,20 +89,8 @@ class CContact extends w2p_Core_BaseObject
 
         $q = $this->_getQuery();
         $this->contact_lastupdate = $q->dbfnNowWithTZ();
-        /*
-         * TODO: I don't like the duplication on each of these two branches, but I
-         *   don't have a good idea on how to fix it at the moment...
-         */
-        
-        if ($this->{$this->_tbl_key} && $this->canEdit()) {
-            $stored = parent::store();
-        }
 
-        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
-            $stored = parent::store();
-        }
-
-        return $stored;
+        parent::hook_preStore();
     }
 
     protected function hook_postStore()
@@ -117,7 +102,7 @@ class CContact extends w2p_Core_BaseObject
         // TODO:  I *really* don't like using the POST inside here..
         $contact_methods = empty($_POST['contact_methods']) ? array() : $_POST['contact_methods'];
         if (count($contact_methods)) {
-            foreach ($contact_methods['field'] as $key => $field) {
+            foreach ($contact_methods['field'] as $key => $notUsed) {
                 $fields[] = $contact_methods['field'][$key];
                 $values[] = $contact_methods['value'][$key];
             }
@@ -128,7 +113,7 @@ class CContact extends w2p_Core_BaseObject
 
         $custom_fields = new w2p_Core_CustomFields('contacts', 'addedit', $this->contact_id, 'edit');
         $custom_fields->bind($_POST);
-        $sql = $custom_fields->store($this->contact_id); // Store Custom Fields
+        $custom_fields->store($this->contact_id); // Store Custom Fields
 
         parent::hook_postStore();
     }
@@ -185,7 +170,7 @@ class CContact extends w2p_Core_BaseObject
         $q->addOrder('method_name');
         $contacts = $q->loadList();
 
-        foreach ($contacts as $row => $data) {
+        foreach ($contacts as $notUsed => $data) {
             $fields[] = $data['method_name'];
             $values[] = $data['method_value'];
         }
@@ -202,7 +187,7 @@ class CContact extends w2p_Core_BaseObject
         if(mb_strlen($this->contact_first_name) <= 1) {
             $this->_error['contact_first_name'] = $baseErrorMsg . 'contact first name is not set';
         }
-        
+
         if(mb_strlen($this->contact_display_name) <= 1) {
             $this->_error['contact_display_name'] = $baseErrorMsg . 'contact display name is not set';
         }
@@ -213,14 +198,46 @@ class CContact extends w2p_Core_BaseObject
         return (count($this->_error)) ? false : true;
     }
 
+    public function canCreate()
+    {
+        $recordCount = $this->loadAll(null, "contact_email = '".$this->contact_email."'");
+        if (count($recordCount) && $this->contact_email != null) {
+            $this->_error['canCreate'] = 'A contact with this email address already exists';
+            return false;
+        }
+        if ('true' == w2PgetConfig('activate_external_user_creation')) {
+            return true;
+        }
+
+        return parent::canCreate();
+    }
+
     public function canEdit()
     {
+        $q = $this->_getQuery();
+        $q->addQuery('user_contact');
+        $q->addTable('users');
+        $q->addWhere('user_id = ' . $this->_AppUI->user_id);
+        $contact_id = $q->loadResult();
+        /* A user can *always* edit themselves. */
+        if ($this->contact_id == $contact_id) {
+            return true;
+        }
+
         $thisCanEdit = false;
         $baseCanEdit = parent::canEdit();
 
         $tmp = new CContact();
+        $tmp->overrideDatabase($this->_query);
         $tmp->load($this->contact_id);
-        if (!$tmp->contact_private || ($tmp->contact_private && ($tmp->contact_owner == $this->_AppUI->user_id))) {
+        /*
+         * This check is one of the more complex ones.. it will only allow the user
+         *   to edit the contact if either:
+         *     a) the contact is not private; OR
+         *     b) the contact is private and the user is the contact owner.
+         */
+        if (!$tmp->contact_private ||
+                ($tmp->contact_private && ($tmp->contact_owner == $this->_AppUI->user_id))) {
             $thisCanEdit = true;
         }
 
@@ -310,7 +327,7 @@ class CContact extends w2p_Core_BaseObject
     {
         $result = $this->loadAll('contact_id', 'contact_id = ' . (int) $this->contact_id);
 
-        return $result[$this->contact_id]['contact_updatekey'];
+        return $result[$this->contact_id];
     }
 
     public function clearUpdateKey()
@@ -324,7 +341,7 @@ class CContact extends w2p_Core_BaseObject
     public function notify()
     {
         $result = false;
-        global $w2Pconfig, $locale_char_set;
+        global $locale_char_set;
         $df = $this->_AppUI->getPref('SHDATEFORMAT');
         $df .= ' ' . $this->_AppUI->getPref('TIMEFORMAT');
 
@@ -490,6 +507,20 @@ class CContact extends w2p_Core_BaseObject
         return $result;
     }
 
+    public function findContactByUserid($userId)
+    {
+        $q = $this->_query;
+        $q->addTable('users');
+        $q->addQuery('con.*, contact_display_name as contact_name');
+        $q->addJoin('contacts', 'con', 'contact_id = user_contact', 'inner');
+        $q->addWhere('user_id = ' . (int) $userId);
+        $result = $q->loadHash();
+
+        $this->bind($result);
+
+        return $this;
+    }
+
     public static function getContactByUserid($userId)
     {
 
@@ -602,8 +633,7 @@ class CContact extends w2p_Core_BaseObject
 
     public function hook_calendar($userId)
     {
-//    return $this->getUpcomingBirthdays($userId);
-        return null;
+        return array();
     }
 
 }

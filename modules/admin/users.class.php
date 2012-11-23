@@ -20,17 +20,26 @@ class CUser extends w2p_Core_BaseObject
     public $user_type = null;
     public $user_contact = null;
     public $user_signature = null;
-    private $perm_func = null;
+
+    protected $externally_created_user = false;
+    protected $authenticator = null;
+
+    private $perm_func = null;    
 
     public function __construct()
     {
         parent::__construct('users', 'user_id');
+        
+        $this->authenticator = new w2p_Authenticators_SQL();
     }
 
     public function isValid()
     {
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
+        if ('' == trim($this->user_username)) {
+            $this->_error['user_username'] = $baseErrorMsg . 'username is not set';
+        }
         if (!$this->user_id && '' == trim($this->user_password)) {
             $this->_error['user_password'] = $baseErrorMsg . 'user password is not set';
         }
@@ -41,35 +50,39 @@ class CUser extends w2p_Core_BaseObject
         return (count($this->_error)) ? false : true;
     }
 
-    public function store($AppUI = null, $externally_created_user = false)
+    protected function  hook_preCreate() {
+        $this->perm_func = 'updateLogin';
+        $tmpUser = new CUser();
+        $tmpUser->overrideDatabase($this->_query);
+        $tmpUser->load($this->user_id);
+
+        if ('' == trim($this->user_password)) {
+            $this->user_password = $tmpUser->user_password;
+        } elseif ($tmpUser->user_password != $this->authenticator->hashPassword($this->user_password)) {
+            $this->user_password = $this->authenticator->hashPassword($this->user_password);
+        } else {
+            $this->user_password = $tmpUser->user_password;
+        }
+
+        parent::hook_preCreate();
+    }
+
+    protected function  hook_preUpdate() {
+        $this->perm_func = 'addLogin';
+        $this->user_password = $this->authenticator->hashPassword($this->user_password);
+
+        parent::hook_preUpdate();
+    }
+
+    public function store($notUsed = null, $externally_created_user = false)
     {
-        $stored = false;
+        $this->externally_created_user = $externally_created_user;
 
-        if ($this->{$this->_tbl_key} && $this->canEdit()) {
-            $this->perm_func = 'updateLogin';
-            $tmpUser = new CUser();
-            $tmpUser->overrideDatabase($this->_query);
-            $tmpUser->load($this->user_id);
-
-            if ('' == trim($this->user_password)) {
-                $this->user_password = $tmpUser->user_password;
-            } elseif ($tmpUser->user_password != md5($this->user_password)) {
-                $this->user_password = md5($this->user_password);
-            } else {
-                $this->user_password = $tmpUser->user_password;
-            }
-
-            $stored = parent::store();
+        if (!$this->isValid()) {
+            return false;
         }
 
-        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
-            $this->perm_func = 'addLogin';
-            $this->user_password = md5($this->user_password);
-
-            $stored = parent::store();
-        }
-
-        return $stored;
+        return parent::store();
     }
 
     protected function hook_postStore()
@@ -90,7 +103,7 @@ class CUser extends w2p_Core_BaseObject
             $w2prefs = $q->loadList();
             $q->clear();
 
-            foreach ($w2prefs as $w2prefskey => $w2prefsvalue) {
+            foreach ($w2prefs as $notUsed => $w2prefsvalue) {
                 $q->addTable('user_preferences', 'up');
                 $q->addInsert('pref_user', $this->user_id);
                 $q->addInsert('pref_name', $w2prefsvalue['pref_name']);
@@ -111,36 +124,43 @@ class CUser extends w2p_Core_BaseObject
         }
         return $result;
     }
+
     public function canCreate()
     {
-        $result = false;
-        if (parent::canCreate() || ($externally_created_user && w2PgetConfig('activate_external_user_creation', false))) {
-            $result = true;
+        $recordCount = $this->loadAll(null, "user_username = '".$this->user_username."'");
+        if (count($recordCount)) {
+            $this->_error['canCreate'] = 'A user with this username already exists';
+            return false;
+         }
+
+        if (parent::canCreate() || ($this->externally_created_user && 'true' == w2PgetConfig('activate_external_user_creation', 'false'))) {
+            return true;
         }
-        return $result;
+
+        return false;
     }
 
     public function canDelete()
     {
-        $tables[] = array('label' => 'Companies', 'name' => 'companies', 'idfield' => 'company_id', 'joinfield' => 'company_owner');
-        $tables[] = array('label' => 'Departments', 'name' => 'departments', 'idfield' => 'dept_id', 'joinfield' => 'dept_owner');
+        $tables[] = array('label' => 'Company Owner', 'name' => 'companies', 'idfield' => 'company_id', 'joinfield' => 'company_owner');
+        $tables[] = array('label' => 'Department Owner', 'name' => 'departments', 'idfield' => 'dept_id', 'joinfield' => 'dept_owner');
         $tables[] = array('label' => 'Project Owner', 'name' => 'projects', 'idfield' => 'project_id', 'joinfield' => 'project_owner');
-        //$tables[] = array('label' => 'Project Creator', 'name' => 'projects', 'idfield' => 'project_id', 'joinfield' => 'project_creator');
-        //$tables[] = array('label' => 'Project Updator', 'name' => 'projects', 'idfield' => 'project_id', 'joinfield' => 'project_updator');
+        $tables[] = array('label' => 'Project Creator', 'name' => 'projects', 'idfield' => 'project_id', 'joinfield' => 'project_creator');
+        $tables[] = array('label' => 'Project Updator', 'name' => 'projects', 'idfield' => 'project_id', 'joinfield' => 'project_updator');
         $tables[] = array('label' => 'Task Owner', 'name' => 'tasks', 'idfield' => 'task_id', 'joinfield' => 'task_owner');
-        //$tables[] = array('label' => 'Task Creator', 'name' => 'tasks', 'idfield' => 'task_id', 'joinfield' => 'task_creator');
-        //$tables[] = array('label' => 'Task Updator', 'name' => 'tasks', 'idfield' => 'task_id', 'joinfield' => 'task_updator');
-        //$tables[] = array('label' => 'Task Assignee', 'name' => 'user_tasks', 'idfield' => 'task_id', 'joinfield' => 'user_id');
-        $tables[] = array('label' => 'Events', 'name' => 'events', 'idfield' => 'event_id', 'joinfield' => 'event_owner');
-        //$tables[] = array('label' => 'Event Attendees', 'name' => 'user_events', 'idfield' => 'event_id', 'joinfield' => 'user_id');
-        $tables[] = array('label' => 'Files', 'name' => 'files', 'idfield' => 'file_id', 'joinfield' => 'file_owner');
+        $tables[] = array('label' => 'Task Creator', 'name' => 'tasks', 'idfield' => 'task_id', 'joinfield' => 'task_creator');
+        $tables[] = array('label' => 'Task Updator', 'name' => 'tasks', 'idfield' => 'task_id', 'joinfield' => 'task_updator');
+        $tables[] = array('label' => 'Task Assignee', 'name' => 'user_tasks', 'idfield' => 'task_id', 'joinfield' => 'user_id');
+        $tables[] = array('label' => 'Event Owner', 'name' => 'events', 'idfield' => 'event_id', 'joinfield' => 'event_owner');
+        $tables[] = array('label' => 'Event Attendee', 'name' => 'user_events', 'idfield' => 'event_id', 'joinfield' => 'user_id');
+        $tables[] = array('label' => 'File Owner', 'name' => 'files', 'idfield' => 'file_id', 'joinfield' => 'file_owner');
         $tables[] = array('label' => 'Forum Owner', 'name' => 'forums', 'idfield' => 'forum_id', 'joinfield' => 'forum_owner');
-        //$tables[] = array('label' => 'Forum Moderator', 'name' => 'forums', 'idfield' => 'forum_id', 'joinfield' => 'forum_moderated');
-        $tables[] = array('label' => 'Forum Messages', 'name' => 'forum_messages', 'idfield' => 'message_id', 'joinfield' => 'message_author');
-        //$tables[] = array('label' => 'Forum Message Editor', 'name' => 'forum_messages', 'idfield' => 'message_id', 'joinfield' => 'message_editor');
-        $tables[] = array('label' => 'Links', 'name' => 'links', 'idfield' => 'link_id', 'joinfield' => 'link_owner');
+        $tables[] = array('label' => 'Forum Moderator', 'name' => 'forums', 'idfield' => 'forum_id', 'joinfield' => 'forum_moderated');
+        $tables[] = array('label' => 'Forum Message Author', 'name' => 'forum_messages', 'idfield' => 'message_id', 'joinfield' => 'message_author');
+        $tables[] = array('label' => 'Forum Message Editor', 'name' => 'forum_messages', 'idfield' => 'message_id', 'joinfield' => 'message_editor');
+        $tables[] = array('label' => 'Link Owner', 'name' => 'links', 'idfield' => 'link_id', 'joinfield' => 'link_owner');
 
-        return parent::canDelete($msg, $this->user_id, $tables);
+        return parent::canDelete(null, $this->user_id, $tables);
     }
 
     protected function hook_preDelete()
@@ -213,7 +233,9 @@ class CUser extends w2p_Core_BaseObject
 
     public function validatePassword($userId, $password)
     {
-        $users = $this->loadAll('user_id', 'user_password = \'' . md5($password) . '\' AND user_id = ' . (int) $userId);
+        $hash = $this->authenticator->hashPassword($password);
+        
+        $users = $this->loadAll('user_id', 'user_password = \'' . $hash . '\' AND user_id = ' . (int) $userId);
 
         return isset($users[$userId]);
     }

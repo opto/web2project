@@ -33,32 +33,27 @@ $allowedTasks = $obj->getAllowedSQL($AppUI->user_id, 'tasks.task_id');
 $obj->load($task_id);
 $task_project = $project_id ? $project_id : ($obj->task_project ? $obj->task_project : 0);
 
-$root_tasks = $obj->getRootTasks((int) $task_project);
-
 $projTasks = array();
-global $task_parent_options;
-$task_parent_options = '';
 
 $parents = array();
 $projTasksWithEndDates = array(0 => $AppUI->_('None')); //arrays contains task end date info for setting new task start date as maximum end date of dependenced tasks
-global $all_tasks;
 $all_tasks = array();
-$sub_tasks = $obj->getNonRootTasks((int)$task_project);
 
-if ($sub_tasks) {
-	while ($sub_task = $q->fetchRow()) {
-		// Build parent/child task list
-		$parents[$sub_task['task_parent']][] = $sub_task['task_id'];
-		$all_tasks[$sub_task['task_id']] = $sub_task;
-		build_date_list($projTasksWithEndDates, $sub_task);
-	}
+$subtasks = $task->getNonRootTasks($task_project);
+foreach ($subtasks as $sub_task) {
+    // Build parent/child task list
+    $parents[$sub_task['task_parent']][] = $sub_task['task_id'];
+    $all_tasks[$sub_task['task_id']] = $sub_task;
+    build_date_list($projTasksWithEndDates, $sub_task);
 }
-$q->clear();
-// let's iterate root tasks
+
+$task_parent_options = '';
+
+$root_tasks = $obj->getRootTasks((int) $task_project);
 foreach ($root_tasks as $root_task) {
-	build_date_list($projTasksWithEndDates, $root_task);
+    build_date_list($projTasksWithEndDates, $root_task);
 	if ($root_task['task_id'] != $task_id) {
-		constructTaskTree_pd($root_task, $parents, $all_tasks);
+        $task_parent_options .= buildTaskTree($root_task, 0, array(), $all_tasks, $parents, $task_parent, $task_id);
 	}
 }
 
@@ -80,14 +75,15 @@ $sprojects = arrayMerge(array('' => '(' . $AppUI->_('Move to Project', UI_OUTPUT
 $percent = array(0 => '0', 5 => '5', 10 => '10', 15 => '15', 20 => '20', 25 => '25', 30 => '30', 35 => '35', 40 => '40', 45 => '45', 50 => '50', 55 => '55', 60 => '60', 65 => '65', 70 => '70', 75 => '75', 80 => '80', 85 => '85', 90 => '90', 95 => '95', 100 => '100');
 $spercent = arrayMerge(array('' => '('.$AppUI->_('Progress').')'), $percent);
 ?>
-<form name="frm_bulk" method="post" action="?m=projectdesigner&a=do_task_bulk_aed" accept-charset="utf-8">
+<form name="frm_bulk" method="post" action="?m=projectdesigner" accept-charset="utf-8">
+    <input type="hidden" name="dosql" value="do_task_bulk_aed" />
     <input type="hidden" name="project_id" value="<?php echo $project_id; ?>" />
-    <input type="hidden" name="opt_view_project" value="<?php echo (isset($view_options[0]['pd_option_view_project']) ? $view_options[0]['pd_option_view_project'] : 1); ?>" />
-    <input type="hidden" name="opt_view_gantt" value="<?php echo (isset($view_options[0]['pd_option_view_gantt']) ? $view_options[0]['pd_option_view_gantt'] : 1); ?>" />
-    <input type="hidden" name="opt_view_tasks" value="<?php echo (isset($view_options[0]['pd_option_view_tasks']) ? $view_options[0]['pd_option_view_tasks'] : 1); ?>" />
-    <input type="hidden" name="opt_view_actions" value="<?php echo (isset($view_options[0]['pd_option_view_actions']) ? $view_options[0]['pd_option_view_actions'] : 1); ?>" />
-    <input type="hidden" name="opt_view_addtsks" value="<?php echo (isset($view_options[0]['pd_option_view_addtasks']) ? $view_options[0]['pd_option_view_addtasks'] : 1); ?>" />
-    <input type="hidden" name="opt_view_files" value="<?php echo (isset($view_options[0]['pd_option_view_files']) ? $view_options[0]['pd_option_view_files'] : 1); ?>" />
+    <input type="hidden" name="pd_option_view_project" value="<?php echo (isset($view_options[0]['pd_option_view_project']) ? $view_options[0]['pd_option_view_project'] : 1); ?>" />
+    <input type="hidden" name="pd_option_view_gantt" value="<?php echo (isset($view_options[0]['pd_option_view_gantt']) ? $view_options[0]['pd_option_view_gantt'] : 1); ?>" />
+    <input type="hidden" name="pd_option_view_tasks" value="<?php echo (isset($view_options[0]['pd_option_view_tasks']) ? $view_options[0]['pd_option_view_tasks'] : 1); ?>" />
+    <input type="hidden" name="pd_option_view_actions" value="<?php echo (isset($view_options[0]['pd_option_view_actions']) ? $view_options[0]['pd_option_view_actions'] : 1); ?>" />
+    <input type="hidden" name="pd_option_view_addtasks" value="<?php echo (isset($view_options[0]['pd_option_view_addtasks']) ? $view_options[0]['pd_option_view_addtasks'] : 1); ?>" />
+    <input type="hidden" name="pd_option_view_files" value="<?php echo (isset($view_options[0]['pd_option_view_files']) ? $view_options[0]['pd_option_view_files'] : 1); ?>" />
     <input type="hidden" name="bulk_task_hperc_assign" value="" />
     <table id="tbl_bulk" width="100%">
         <tr>

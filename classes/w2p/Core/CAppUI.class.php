@@ -19,6 +19,7 @@ define('UI_OUTPUT_HTML', 0);
 define('UI_OUTPUT_JS', 0x10);
 define('UI_OUTPUT_RAW', 0x20);
 
+define('ACCESS_DENIED', 'm=public&a=access_denied');
 /**
  * The Application User Interface Class.
  *
@@ -223,7 +224,6 @@ class w2p_Core_CAppUI
      */
     public function getVersion()
     {
-        global $w2Pconfig;
         if (!isset($this->version_major)) {
             include W2P_BASE_DIR . '/includes/version.php';
             $this->version_major = $w2p_version_major;
@@ -398,7 +398,7 @@ class w2p_Core_CAppUI
         $bad_replace = '....'; // Needs the same number of chars as $bad_chars
         // check whether the filename contained bad characters
         if (strpos(strtr($file, $bad_chars, $bad_replace), '.') !== false) {
-            $AppUI->redirect('m=public&a=access_denied');
+            $AppUI->redirect(ACCESS_DENIED);
         } else {
             return $file;
         }
@@ -447,7 +447,7 @@ class w2p_Core_CAppUI
             }
             $lang = $LANGUAGES[$loc];
         }
-        list($base_locale, $english_string, $native_string, $default_language, $lcs) = $lang;
+        list($base_locale, $notUsed, $notUsed2, $default_language, $lcs) = $lang;
         if (!isset($lcs)) {
             $lcs = (isset($locale_char_set)) ? $locale_char_set : 'utf-8';
         }
@@ -478,7 +478,7 @@ class w2p_Core_CAppUI
         // Just use the country code and try and find it in the
         // languages list.
         $first_entry = null;
-        foreach ($LANGUAGES as $lang => $info) {
+        foreach ($LANGUAGES as $lang => $notUsed) {
             list($l, $c) = explode('_', $lang);
             if ($l == $language) {
                 if (!$first_entry) {

@@ -312,7 +312,7 @@ class CTask extends w2p_Core_BaseObject
         return parent::load($oid, $strip);
     }
 
-    public function loadFull($AppUI = null, $taskId)
+    public function loadFull($notUsed = null, $taskId)
     {
         $q = $this->_getQuery();
         $q->addTable('tasks');
@@ -538,14 +538,7 @@ class CTask extends w2p_Core_BaseObject
 
     public function bind($hash, $prefix = null, $checkSlashes = true, $bindAll = false)
     {
-        $result = parent::bind($hash, $prefix, $checkSlashes, $bindAll);
-        if ($this->task_start_date != '' && $this->task_start_date != '0000-00-00 00:00:00') {
-            $this->task_start_date = $this->_AppUI->convertToSystemTZ($this->task_start_date);
-        }
-        if ($this->task_end_date != '' && $this->task_end_date != '0000-00-00 00:00:00') {
-            $this->task_end_date = $this->_AppUI->convertToSystemTZ($this->task_end_date);
-        }
-        $this->task_contacts = explode(',', $this->task_contacts);
+        parent::bind($hash, $prefix, $checkSlashes, $bindAll);
 
         return true;
     }
@@ -663,6 +656,19 @@ class CTask extends w2p_Core_BaseObject
         return $stored;
     }
 
+    protected function hook_preStore()
+    {
+        parent::hook_preStore();
+
+        if ($this->task_start_date != '' && $this->task_start_date != '0000-00-00 00:00:00') {
+            $this->task_start_date = $this->_AppUI->convertToSystemTZ($this->task_start_date);
+        }
+        if ($this->task_end_date != '' && $this->task_end_date != '0000-00-00 00:00:00') {
+            $this->task_end_date = $this->_AppUI->convertToSystemTZ($this->task_end_date);
+        }
+        $this->task_contacts = is_array($this->task_contacts) ? $this->task_contacts : explode(',', $this->task_contacts);
+    }
+
     protected function hook_postStore()
     {
         parent::hook_postStore();
@@ -672,7 +678,11 @@ class CTask extends w2p_Core_BaseObject
          // else than a global variable...
         global $oTsk;
         $q = $this->_query;
-
+        /*
+         * TODO: I don't like that we have to run an update immediately after the store
+         *   but I don't have a better solution at the moment.
+         *                                      ~ caseydk 2012 Aug 04
+         */
         if (!$this->task_parent) {
             $q->addTable('tasks');
             $q->addUpdate('task_parent', $this->task_id);
@@ -689,7 +699,6 @@ class CTask extends w2p_Core_BaseObject
             $last_task_data['last_date'],
             $this->getTaskCount($this->task_project)
         );
-        
         $this->pushDependencies($this->task_id, $this->task_end_date);
 
         //split out related departments and store them seperatly.
@@ -751,6 +760,22 @@ class CTask extends w2p_Core_BaseObject
         }
     }
 
+    protected function  hook_postUpdate() {
+        parent::hook_postUpdate();
+
+        $q = $this->_query;
+        /*
+         * TODO: I don't like that we have to run an update immediately after the store
+         *   but I don't have a better solution at the moment.
+         *                                      ~ caseydk 2012 Aug 04
+         */
+        $q->addTable('tasks');
+        $q->addUpdate('task_sequence', "task_sequence+1", false, true);
+        $q->addUpdate('task_updated', "'" . $q->dbfnNowWithTZ() . "'", false, true);
+        $q->addWhere('task_id = ' . (int) $this->task_id);
+        $q->exec();
+    }
+
     /**
      *
      * @param w2p_Core_CAppUI $AppUI
@@ -793,11 +818,11 @@ class CTask extends w2p_Core_BaseObject
             }
             $task->task_name = $AppUI->_('Subproject') . ': ' . $subProject->project_name;
             $task->task_duration_type = 1;
-            $task->task_duration = $subProject->getTotalProjectHours();
+            $task->task_duration = $subProject->project_worked_hours;
             $task->task_start_date = $projectDates[0]['min_task_start_date'];
             $task->task_end_date = $projectDates[0]['max_task_end_date'];
             $task->task_percent_complete = $subProject->project_percent_complete;
-            $result = $task->store();
+            $task->store();
             //TODO: we should do something with this store result?
         }
     }
@@ -902,7 +927,7 @@ class CTask extends w2p_Core_BaseObject
         $tarr = array_flip($tarr);
         unset($tarr[$parent_id]);
 
-        foreach ($tarr as $task_id => $value) {
+        foreach ($tarr as $task_id => $notUsed) {
             if ((int) $task_id) {
                 $q->addTable('task_dependencies');
                 $q->addReplace('dependencies_task_id', $this->task_id);
@@ -913,59 +938,46 @@ class CTask extends w2p_Core_BaseObject
         }
     }
 
+    /*
+     * This function is run immediately after a Task is stored. It uses that Task's
+     *    end date and checks for dependent tasks beginning before that date.
+     *
+     * If there are any dependencies that match those criteria, it updates those
+     *    and recurses.
+     * If not, it returns.
+     *
+     * @todo TODO: This entire function needs to be timezone aware.. current it isn't.
+     */
     public function pushDependencies($taskId, $lastEndDate)
     {
-
         $q = $this->_getQuery();
-        $q->addQuery('td.dependencies_task_id, t.task_start_date');
-        $q->addQuery('t.task_end_date, t.task_duration, t.task_duration_type, t.task_parent');
+        $q->addQuery('task_id, task_duration, task_duration_type');
         $q->addTable('task_dependencies', 'td');
-        $q->leftJoin('tasks', 't', 't.task_id = td.dependencies_task_id');
+        $q->rightJoin('tasks', 't', 't.task_id = td.dependencies_task_id');
         $q->addWhere('td.dependencies_req_task_id = ' . (int) $taskId);
         $q->addWhere("t.task_start_date < '$lastEndDate'");
         $q->addWhere('t.task_dynamic = 31');
         $q->addOrder('t.task_start_date');
-
         $cascadingTasks = $q->loadList();
-        $q->clear();
 
+        $lastEndDate = $this->_AppUI->formatTZAwareTime($lastEndDate, '%Y-%m-%d %T');
+        $nsd = new w2p_Utilities_Date($lastEndDate);
+        $nsd = $nsd->next_working_day();
+
+        $tmpTask = new CTask();
         foreach ($cascadingTasks as $nextTask) {
-            /** BEGIN: nasty task update code - very similar to lines 192 in do_task_aed.php * */
-            $tsd = new w2p_Utilities_Date($nextTask['task_start_date']);
-            $ted = new w2p_Utilities_Date($nextTask['task_end_date']);
+            $multiplier = ('24' == $nextTask['task_duration_type']) ? 3 : 1;
+            $d = $nextTask['task_duration'] * $multiplier;
 
-            $nsd = new w2p_Utilities_Date($lastEndDate);
-            $nsd = $nsd->next_working_day();
             $ned = new w2p_Utilities_Date();
             $ned->copy($nsd);
-
-            if (empty($tsd)) {
-                // appropriately calculated end date via start+duration
-                $ned->addDuration($nextTask['task_duration'], $nextTask['task_duration_type']);
-            } else {
-                // calc task time span start - end
-                $d = $tsd->calcDuration($ted);
-
-                // Re-add (keep) task time span for end date.
-                // This is independent from $obj->task_duration.
-                // The value returned by Date::Duration() is always in hours ('1')
-                $ned->addDuration($d, '1');
-            }
-            // prefer tue 16:00 over wed 8:00 as an end date
+            $ned->addDuration($d);
             $ned = $ned->prev_working_day();
 
-            $task_start_date = $nsd->format(FMT_DATETIME_MYSQL);
-            $task_end_date = $ned->format(FMT_DATETIME_MYSQL);
-
-            $q->addTable('tasks', 't');
-            $q->addUpdate('task_start_date', $task_start_date);
-            $q->addUpdate('task_end_date', $task_end_date);
-            $q->addUpdate('task_updated', "'" . $q->dbfnNowWithTZ() . "'", null, true);
-            $q->addWhere('task_id = ' . $nextTask['dependencies_task_id']);
-            $q->exec();
-            $q->clear();
-            /** END: nasty task update code - very similar to lines 192 in do_task_aed.php * */
-            $this->pushDependencies($nextTask['dependencies_task_id'], $task_end_date);
+            $tmpTask->load($nextTask['task_id']);
+            $tmpTask->task_start_date = $nsd->format(FMT_DATETIME_MYSQL);
+            $tmpTask->task_end_date   = $ned->format(FMT_DATETIME_MYSQL);
+            $tmpTask->store();
         }
     }
 
@@ -1056,7 +1068,8 @@ class CTask extends w2p_Core_BaseObject
         return '';
     }
 
-    //additional comment will be included in email body
+//TODO: additional comment will be included in email body
+//TODO: should we resolve $projname ?
     public function notify($comment = '')
     {
         global $locale_char_set;
@@ -1118,19 +1131,11 @@ class CTask extends w2p_Core_BaseObject
      */
     public function email_log(&$log, $assignees, $task_contacts, $project_contacts, $others, $extras, $specific_user = 0)
     {
-        global $locale_char_set, $w2Pconfig;
+        global $locale_char_set;
 
         $mail_recipients = array();
         $q = $this->_getQuery();
         if ((int) $this->task_id > 0 && (int) $this->task_project > 0) {
-            $q->addTable('users', 'u');
-            $q->leftJoin('contacts', 'c', 'c.contact_id = u.user_contact');
-            $q->addQuery('c.contact_display_name as contact_name');
-            $q->addWhere('u.user_id=' . (int) $log->task_log_creator);
-            $row = $q->loadHash();
-            $creatorname = $row['contact_name'];
-            $q->clear();
-
             if (isset($assignees) && $assignees == 'on') {
                 $q->addTable('user_tasks', 'ut');
                 $q->leftJoin('users', 'ua', 'ua.user_id = ut.user_id');
@@ -1272,8 +1277,6 @@ class CTask extends w2p_Core_BaseObject
             $user_id = $AppUI->user_id;
         }
 
-        // filter tasks for not allowed projects
-        $tasks_filter = '';
         // check permissions on projects
         $proj = new CProject();
         $task_filter_where = $proj->getAllowedSQL($AppUI->user_id, 't.task_project');
@@ -1322,8 +1325,9 @@ class CTask extends w2p_Core_BaseObject
         // check tasks access
         $result = array();
         foreach ($tasks as $key => $row) {
-            $access_granted = canTaskAccess($row['task_id'], $row['task_access'], $row['task_owner']);
-            if (!$access_granted) {
+            $obj->load($row['task_id']);
+            $canAccess = $obj->canAccess();
+            if (!$canAccess) {
                 continue;
             }
             $result[$key] = $row;
@@ -1332,9 +1336,9 @@ class CTask extends w2p_Core_BaseObject
         return $result;
     }
 
-    public function canAccess($user_id)
+    public function canAccess($user_id = 0)
     {
-
+        $user_id = ($user_id) ? $user_id : $this->_AppUI->user_id;
         // Let's see if this user has admin privileges
         if (canView('admin')) {
             return true;
@@ -1758,7 +1762,7 @@ class CTask extends w2p_Core_BaseObject
         return $q->loadHashList('dependencies_task_id');
     }
 
-    public function getTaskDepartments($AppUI = null, $taskId)
+    public function getTaskDepartments($notUsed = null, $taskId)
     {
         if ($this->_AppUI->isActiveModule('departments')) {
             $q = $this->_getQuery();
@@ -1776,7 +1780,7 @@ class CTask extends w2p_Core_BaseObject
         }
     }
 
-    public function getContacts($AppUI = null, $task_id)
+    public function getContacts($notUsed = null, $task_id)
     {
         if (canView('contacts')) {
             $q = $this->_getQuery();
@@ -1800,7 +1804,7 @@ class CTask extends w2p_Core_BaseObject
         }
     }
 
-    public function getTaskContacts($AppUI = null, $task_id)
+    public function getTaskContacts($notUsed = null, $task_id)
     {
         return $this->getContacts($this->_AppUI, $task_id);
     }
@@ -1951,14 +1955,14 @@ class CTask extends w2p_Core_BaseObject
 
     public function getNonRootTasks($project_id)
     {
-        $q = new w2p_Database_Query;
+        $q = $this->_getQuery();
         $q->addQuery('task_id, task_name, task_end_date, task_start_date, task_milestone, task_parent, task_dynamic');
         $q->addTable('tasks');
-        $q->addWhere('task_project = ' . (int) $task_project);
+        $q->addWhere('task_project = ' . (int) $project_id);
         $q->addWhere('task_id <> task_parent');
         $q->addOrder('task_start_date');
 
-        return $q->exec();
+        return $q->loadHashList('task_id');
     }
 
     // Returns task deep children IDs
@@ -2132,7 +2136,7 @@ class CTask extends w2p_Core_BaseObject
              * It shouldn't be possible to have more than one reminder,
              * but if we do, we may as well clean them up now.
              */
-            foreach ($old_reminders as $old_id => $old_data) {
+            foreach ($old_reminders as $old_id => $notUsed) {
                 $eq->remove($old_id);
             }
         }
@@ -2162,7 +2166,7 @@ class CTask extends w2p_Core_BaseObject
      * @return		  mixed		   true, dequeue event, false, event stays in queue.
      * -1, event is destroyed.
      */
-    public function remind($module, $type, $id, $owner, &$args)
+    public function remind($notUsed = null, $notUsed2 = null, $id, $owner, $notUsed = null)
     {
         global $locale_char_set;
 
@@ -2183,25 +2187,16 @@ class CTask extends w2p_Core_BaseObject
             return - 1;
         }
 
-        $contacts = $this->getAssigned();
+        $contacts = array();
+        $contacts = $this->getAssigned('contact_id');
 
-        // Now we also check the owner of the task, as we will need
-        // to notify them as well.
-        $owner_is_not_assignee = false;
-        $q = $this->_getQuery();
-        $q->addTable('users', 'u');
-        $q->addJoin('contacts', 'c', 'c.contact_id = u.user_contact', 'inner');
-        $q->addQuery('c.contact_id, contact_first_name, contact_last_name,
-            contact_display_name as contact_name, contact_email');
-        $q->addWhere('u.user_id = ' . (int) $this->task_owner);
-        if ($q->exec(ADODB_FETCH_NUM)) {
-            list($owner_contact, $owner_first_name, $owner_last_name, $owner_email) = $q->fetchRow();
-            if (!isset($contacts[$owner_contact])) {
-                $owner_is_not_assignee = true;
-                $contacts[$owner_contact] = array('contact_id' => $owner_contact, 'contact_first_name' => $owner_first_name, 'contact_last_name' => $owner_last_name, 'contact_email' => $owner_email);
-            }
-        }
-        $q->clear();
+        $contact = new CContact();
+        $owner = $contact->findContactByUserId($this->task_owner);
+        $contacts[$owner->contact_id] = array(
+                                    'user_id' => $this->task_owner,
+                                    'contact_id' => $owner->contact_id,
+                                    'contact_name' => $owner->contact_display_name,
+                                    'contact_email' => $owner->contact_email);
 
         // build the subject line, based on how soon the
         // task will be overdue.
@@ -2239,12 +2234,11 @@ class CTask extends w2p_Core_BaseObject
         $mail = new w2p_Utilities_Mail();
         $mail->Subject($subject, $locale_char_set);
 
-        $user = new CUser();
         foreach ($contacts as $contact) {
-            $user_id = $user->getIdByContactId($contact['contact_id']);
+            $user_id = $contact['user_id'];
             $this->_AppUI->loadPrefs($user_id);
 
-            $df = $this->_AppUI->getPref('DISPLAYFORMAT');
+            $df = $this->_AppUI->getPref('SHDATEFORMAT');
             $tz = $this->_AppUI->getPref('TIMEZONE');
 
             $body = str_replace('START-TIME', $starts->convertTZ($tz)->format($df), $body);
@@ -2268,7 +2262,7 @@ class CTask extends w2p_Core_BaseObject
 
         $event_list = $ev->find('tasks', 'remind', $this->task_id);
         if (count($event_list)) {
-            foreach ($event_list as $id => $data) {
+            foreach ($event_list as $id => $notUsed) {
                 if ($dont_check || $this->task_percent_complete >= 100) {
                     $ev->remove($id);
                 }
@@ -2301,18 +2295,18 @@ class CTask extends w2p_Core_BaseObject
         return parent::getAllowedRecords($uid, $fields, $orderby, $index, $extra);
     }
 
-    public function getAssigned()
+    public function getAssigned($index = 'user_id')
     {
-
         $q = $this->_getQuery();
         $q->addTable('users', 'u');
         $q->addTable('user_tasks', 'ut');
         $q->addTable('contacts', 'con');
-        $q->addQuery('u.user_id, contact_display_name AS user_name, perc_assignment');
+        $q->addQuery('u.user_id, perc_assignment');
+        $q->addQuery('contact_id, contact_display_name AS user_name, contact_display_name AS contact_name, contact_email');
         $q->addWhere('ut.task_id = ' . (int) $this->task_id);
         $q->addWhere('user_contact = contact_id');
         $q->addWhere('ut.user_id = u.user_id');
-        $assigned = $q->loadHashList('user_id');
+        $assigned = $q->loadHashList($index);
         return $assigned;
     }
 
@@ -2349,8 +2343,12 @@ class CTask extends w2p_Core_BaseObject
         //TODO: A user should be able to select if they get distinct start/end dates or two tasks for each task.
         foreach ($taskList as $taskItem) {
             //$taskArray[] = $taskItem;
-            $taskArray[] = array_merge($taskItem, array('endDate' => $taskItem['startDate'], 'name' => 'Start: ' . $taskItem['name'], 'UID' => 'tasks_' . $taskItem['id'] . 'S'));
-            $taskArray[] = array_merge($taskItem, array('startDate' => $taskItem['endDate'], 'name' => 'End: ' . $taskItem['name'], 'UID' => 'tasks_' . $taskItem['id'] . 'E'));
+            $taskArray[] = array_merge($taskItem, array('sequence' => $taskItem['sequence'],
+                'endDate' => $taskItem['startDate'], 'name' => 'Start: ' . $taskItem['name'],
+                'UID' => 'tasks_' . $taskItem['id'] . 'S'));
+            $taskArray[] = array_merge($taskItem, array('sequence' => $taskItem['sequence'],
+                'startDate' => $taskItem['endDate'], 'name' => 'End: ' . $taskItem['name'],
+                'UID' => 'tasks_' . $taskItem['id'] . 'E'));
         }
 
         return $taskArray;
@@ -2387,7 +2385,7 @@ class CTask extends w2p_Core_BaseObject
 
         $q = $this->_getQuery();
         $q->addQuery('t.task_id as id');
-        $q->addQuery('task_name as name');
+        $q->addQuery('task_name as name, task_sequence');
         $q->addQuery('task_description as description');
         $q->addQuery('task_start_date as startDate');
         $q->addQuery('task_end_date as endDate');
@@ -2414,7 +2412,7 @@ class CTask extends w2p_Core_BaseObject
         return $q->loadList();
     }
 
-    public function getAllowedTaskList($AppUI = null, $task_project = 0, $orderby='')
+    public function getAllowedTaskList($notUsed = null, $task_project = 0, $orderby='')
     {
         $results = array();
         
@@ -2433,8 +2431,11 @@ class CTask extends w2p_Core_BaseObject
         }
         $task_list = $q->loadList();
 
+        $obj = new CTask();
         foreach ($task_list as $task) {
-            if (canTaskAccess($task['task_id'], $task['task_access'], $task['task_owner'])) {
+            $obj->load($task['task_id']);
+            $canAccess = $obj->canAccess();
+            if ($canAccess) {
                 $results[] = $task;
             }
         }

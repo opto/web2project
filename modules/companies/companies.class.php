@@ -13,7 +13,7 @@
 class CCompany extends w2p_Core_BaseObject {
 	/**
  	@var int Primary Key */
-	public $company_id = 0;
+	public $company_id = null;
 	/**
  	@var string */
 	public $company_name = null;
@@ -70,29 +70,17 @@ class CCompany extends w2p_Core_BaseObject {
 		return parent::canDelete($msg, $oid, $tables);
 	}
 
-    public function store() {
-        $stored = false;
-
+    protected function  hook_preStore() {
         $this->company_id = (int) $this->company_id;
-        /*
-         * TODO: I don't like the duplication on each of these two branches, but I
-         *   don't have a good idea on how to fix it at the moment...
-         */
-        if ($this->{$this->_tbl_key} && $this->canEdit()) {
-            $stored = parent::store();
-        }
-        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
-            $stored = parent::store();
-        }
 
-        return $stored;
+        parent::hook_preStore();
     }
 
     protected function hook_postStore() {
         $custom_fields = new w2p_Core_CustomFields('companies', 'addedit', $this->company_id, 'edit');
         //TODO: I still don't like the POST here..
         $custom_fields->bind($_POST);
-        $sql = $custom_fields->store($this->company_id); // Store Custom Fields
+        $custom_fields->store($this->company_id); // Store Custom Fields
 
         parent::hook_postStore();
     }
@@ -112,7 +100,7 @@ class CCompany extends w2p_Core_BaseObject {
         return $search;
     }
 
-    public function loadFull($AppUI = null, $companyId) {
+    public function loadFull($notUsed = null, $companyId) {
         $q = $this->_getQuery();
         $q->addTable('companies');
         $q->addQuery('companies.*');
@@ -126,7 +114,7 @@ class CCompany extends w2p_Core_BaseObject {
         $q->loadObject($this, true, false);
     }
 
-    public function getCompanyList($AppUI = null, $companyType = -1, $searchString = '', $ownerId = 0, $orderby = 'company_name', $orderdir = 'ASC') {
+    public function getCompanyList($notUsed = null, $companyType = -1, $searchString = '', $ownerId = 0, $orderby = 'company_name', $orderdir = 'ASC') {
 
         $q = $this->_getQuery();
         $q->addTable('companies', 'c');
@@ -180,9 +168,11 @@ class CCompany extends w2p_Core_BaseObject {
 
 		$q->addWhere('pr.project_active = '. (int) $active);
 
-		if (strpos($fields, $sort) !== false) {
+        if(property_exists('CProject', $sort) || strpos($fields, $sort) !== false) {
 			$q->addOrder($sort);
-		}
+		} else {
+            $q->addOrder('project_name');
+        }
 
 		return $q->loadList();
 	}

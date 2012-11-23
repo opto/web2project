@@ -22,58 +22,58 @@
 // NOTE: This path is relative to Phing's build.xml, not this test.
 include_once 'unit_tests/CommonSetup.php';
 
-class CSystemBudgets_Test extends CommonSetup
+class CSystemBcode_Test extends CommonSetup
 {
 
     protected function setUp()
     {
       parent::setUp();
 
-      $this->obj    = new CSystem_Budget();
+      $this->obj    = new CSystem_Bcode();
       $this->obj->overrideDatabase($this->mockDB);
 
       $GLOBALS['acl'] = new w2p_Mocks_Permissions();
 
       $this->post_data = array(
-          'dosql'             => 'do_budgeting_aed',
-          'budget_id'         => 0,
-          'budget_company'    => 0,
-          'budget_dept'       => 0,
-          'budget_start_date' => '20120105',
-          'budget_end_date'   => '20120119',
-          'budget_amount'     => 500.21,
-          'budget_category'   => 1
+          'dosql'                => 'do_billingcode_aed',
+          'billingcode_id'       => 0,
+          'billingcode_company'  => 1,
+          'billingcode_desc'     => 'A description',
+          'billingcode_name'     => 'bc-name',
+          'billingcode_value'    => 5000,
+          'billingcode_status'   => 1,
+          'billingcode_category' => 1
       );
     }
 
     public function testObjectProperties()
     {
-        parent::objectPropertiesTest('CSystem_Budget', 7);
+        parent::objectPropertiesTest('CSystem_Bcode', 8);
     }
 
     /**
      * Tests that the proper error message is returned when a budget of zero
      *   is attempted.
      */
-    public function testCreateBudgetNoBalance()
+    public function testCreateDuplicateCode()
     {
-        unset($this->post_data['budget_amount']);
+        $this->mockDB->stageResult(7);
         $this->obj->bind($this->post_data);
 
         /**
         * Verify we got the proper error message
         */
 		$this->assertFalse($this->obj->store());
-        $this->assertArrayHasKey('budget_amount', $this->obj->getError());
+        $this->assertArrayHasKey('billingcode_name', $this->obj->getError());
 
         /**
-        * Verify that link id was not set
+        * Verify that the id was not set
         */
-        $this->assertEquals(0, $this->obj->budget_id);
+        $this->AssertEquals(0, $this->obj->billingcode_id);
     }
 
     /**
-     * Tests the proper creation of a budget
+     * Tests the proper creation of a bcode
      */
     public function testStoreCreate()
     {
@@ -81,24 +81,13 @@ class CSystemBudgets_Test extends CommonSetup
         $result = $this->obj->store();
 
         $this->assertTrue($result);
-
-        /*
-         *  These fields come from the $_POST data and should be pass throughs.
-         */
-        $this->assertEquals(0,                     $this->obj->budget_company);
-        $this->assertEquals(0,                     $this->obj->budget_dept);
-        $this->assertEquals(500.21,                $this->obj->budget_amount);
-        $this->assertEquals(1,                     $this->obj->budget_category);
-        /*
-         *  These fields are from the $_POST but are modified in the store().
-         */
-        $this->assertEquals('2012-01-05 00:00:00', $this->obj->budget_start_date);
-        $this->assertEquals('2012-01-19 00:00:00', $this->obj->budget_end_date);
-        $this->assertNotEquals(0,                  $this->obj->budget_id);
+        $this->assertEquals('bc-name',          $this->obj->billingcode_name);
+        $this->assertEquals('A description',    $this->obj->billingcode_desc);
+        $this->assertNotEquals(0,               $this->obj->billingcode_id);
     }
 
     /**
-     * Tests loading the CSystem_Budget Object
+     * Tests loading the CSystem_Bcode Object
      */
     public function testLoad()
     {
@@ -106,42 +95,39 @@ class CSystemBudgets_Test extends CommonSetup
         $result = $this->obj->store();
         $this->assertTrue($result);
 
-        $item = new CSystem_Budget();
+        $item = new CSystem_Bcode();
         $item->overrideDatabase($this->mockDB);
-        $this->post_data['budget_id'] = $this->obj->budget_id;
+        $this->post_data['billingcode_id'] = $this->obj->billingcode_id;
         $this->mockDB->stageHash($this->post_data);
-        $item->load($this->obj->budget_id);
+        $item->load($this->obj->billingcode_id);
 
-        $this->assertEquals($this->obj->budget_company,    $item->budget_company);
-        $this->assertEquals($this->obj->budget_dept,       $item->budget_dept);
-        $this->assertEquals($this->obj->budget_start_date, '2012-01-05 00:00:00');
-        $this->assertEquals($this->obj->budget_end_date,   '2012-01-19 00:00:00');
-        $this->assertEquals($this->obj->budget_amount,     $item->budget_amount);
-        $this->assertEquals($this->obj->budget_category,   $item->budget_category);
+        $this->assertEquals($this->obj->billingcode_id,     $item->billingcode_id);
+        $this->assertEquals($this->obj->billingcode_name,   $item->billingcode_name);
+        $this->assertEquals($this->obj->billingcode_desc,   $item->billingcode_desc);
     }
 
     /**
-     * Tests the update of a CSystem_Budget Object
+     * Tests the update of a CSystem_Bcode Object
      */
     public function testStoreUpdate()
     {
         $this->obj->bind($this->post_data);
         $result = $this->obj->store();
         $this->assertTrue($result);
-        $original_id = $this->obj->budget_id;
+        $original_id = $this->obj->billingcode_id;
 
-        $this->obj->budget_amount       = 8000;
+        $this->obj->billingcode_value       = 8000;
 
         $result = $this->obj->store();
         $this->assertTrue($result);
-        $new_id = $this->obj->budget_id;
+        $new_id = $this->obj->billingcode_id;
 
         $this->assertEquals($original_id, $new_id);
-        $this->assertEquals(8000,         $this->obj->budget_amount);
+        $this->assertEquals(8000,         $this->obj->billingcode_value);
     }
 
     /**
-     * Tests the delete of a link
+     * Tests the delete of a bcode
      */
     public function testDelete()
     {

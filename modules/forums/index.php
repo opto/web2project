@@ -7,7 +7,7 @@ $perms = &$AppUI->acl();
 
 $canRead = $perms->checkModuleItem('forums', 'view', null);
 if (!$canRead) {
-	$AppUI->redirect('m=public&a=access_denied');
+	$AppUI->redirect(ACCESS_DENIED);
 }
 
 $AppUI->savePlace();
@@ -39,12 +39,19 @@ $canAdd = canAdd($m);
 if ($canAdd) {
 	$titleBlock->addCell('<input type="submit" class="button" value="' . $AppUI->_('new forum') . '">', '', '<form action="?m=forums&a=addedit" method="post" accept-charset="utf-8">', '</form>');
 }
+
+//TODO: this is a little hack to make sure the table header gets generated in the show() method below
+global $a;
+$a = 'list';
+// End of little hack
+
 $titleBlock->show();
 $htmlHelper = new w2p_Output_HTMLHelper($AppUI);
 
 $fieldList = array();
 $fieldNames = array();
-$fields = $module->loadSettings('files', 'index_list');
+$module = new w2p_Core_Module();
+$fields = $module->loadSettings('forums', 'index_list');
 if (count($fields) > 0) {
     $fieldList = array_keys($fields);
     $fieldNames = array_values($fields);
@@ -57,7 +64,7 @@ if (count($fields) > 0) {
     $fieldNames = array('', 'Watch', 'Forum Name', 'Topics',
         'Replies', 'Last Post Info');
 
-    $module->storeSettings('files', 'index_list', $fieldList, $fieldNames);
+    $module->storeSettings('forums', 'index_list', $fieldList, $fieldNames);
 }
 ?>
 

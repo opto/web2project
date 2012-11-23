@@ -6,6 +6,7 @@ if (!defined('W2P_BASE_DIR')) {
 $user_id = (int) w2PgetParam($_GET, 'user_id', 0);
 $contact_id = (int) w2PgetParam($_GET, 'contact_id', 0);
 
+$perms = &$AppUI->acl();
 if ($user_id == 0) {
 	$canEdit = $canAuthor;
 }
@@ -16,10 +17,9 @@ if ($canEdit) {
 
 // check permissions
 if (!$canEdit && $user_id != $AppUI->user_id) {
-	$AppUI->redirect('m=public&a=access_denied');
+	$AppUI->redirect(ACCESS_DENIED);
 }
 
-$perms = &$AppUI->acl();
 $crole = new CSystem_Role;
 $roles = $crole->getRoles();
 // Format the roles for use in arraySelect

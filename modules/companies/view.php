@@ -5,28 +5,22 @@ if (!defined('W2P_BASE_DIR')) {
 
 $company_id = (int) w2PgetParam($_GET, 'company_id', 0);
 
+
+
 $company = new CCompany();
 $company->company_id = $company_id;
 
-$canRead = $company->canView();
-if (!$canRead) {
-  $AppUI->redirect('m=public&a=access_denied');
+$canEdit   = $company->canEdit();
+$canRead   = $company->canView();
+$canAdd    = $company->canCreate();
+$canAccess = $company->canAccess();
+$canDelete = $company->canDelete();
+$deletable = $canDelete;            //TODO: this should be removed once the $deletable variable is removed
+if (!$canAccess || !$canRead) {
+	$AppUI->redirect(ACCESS_DENIED);
 }
 
-$canAdd = $company->canCreate();
-$canEdit = $company->canEdit();
-$canDelete = $company->canDelete();
-//TODO: delete the next line one the $deletable variable is renamed properly
-$deletable = $canDelete;
-
 $company->loadFull(null, $company_id);
-
-$tab = $AppUI->processIntState('CompVwTab', $_GET, 'tab', 0);
-
-
-
-// load the record data
-
 if (!$company) {
 	$AppUI->setMsg('Company');
 	$AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
@@ -34,6 +28,9 @@ if (!$company) {
 } else {
 	$AppUI->savePlace();
 }
+
+$tab = $AppUI->processIntState('CompVwTab', $_GET, 'tab', 0);
+
 
 // setup the title block
 $titleBlock = new w2p_Theme_TitleBlock('View Company', 'handshake.png', $m, "$m.$a");
@@ -55,6 +52,7 @@ if ($canEdit) {
 }
 $titleBlock->show();
 $htmlHelper = new w2p_Output_HTMLHelper($AppUI);
+$htmlHelper->stageRowData(get_object_vars($company));
 ?>
 <?php
 // security improvement:
@@ -95,7 +93,7 @@ $countries = w2PgetSysVal('GlobalCountries');
 				</tr>
 				<tr>
 					<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Owner'); ?>:</td>
-                    <?php echo $htmlHelper->createCell('contact_display_name', $company->contact_name); ?>
+                    <?php echo $htmlHelper->createCell('contact_displayname', $company->contact_name); ?>
 				</tr>
 				<tr>
 					<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Email'); ?>:</td>

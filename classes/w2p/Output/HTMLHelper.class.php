@@ -62,7 +62,7 @@ class w2p_Output_HTMLHelper
         }
         $output  = '<table cellspacing="1" cellpadding="2" border="0" width="100%" class="tbl">';
         $output .= '<tr>';
-        foreach ($fieldNames as $index => $name) {
+        foreach ($fieldNames as $index => $notUsed) {
             $output .= '<th nowrap="nowrap">';
 //TODO: Should we support sorting here?
             $output .= $this->_AppUI->_($fieldNames[$index]);
@@ -73,7 +73,7 @@ class w2p_Output_HTMLHelper
         foreach ($contactList as $row) {
             $output .= '<tr>';
             $this->stageRowData($row);
-            foreach ($fieldList as $index => $column) {
+            foreach ($fieldList as $index => $notUsed) {
                 $output .= $this->createCell($fieldList[$index], $row[$fieldList[$index]]);
             }
             $output .= '</tr>';
@@ -153,11 +153,12 @@ class w2p_Output_HTMLHelper
                 break;
             case '_user':
             case '_username':
-                $obj = new CAdmin_User();
-                $obj->load($this->tableRowData['user_id']);
+                $obj = new CContact();
+                $obj->findContactByUserid($this->tableRowData['user_id']);
                 $mod = substr($suffix, 1);
-                $link = '?m=admin&a=viewuser&user_id='.$obj->user_id;
-                $cell = '<a href="'.$link.'">'.$value.'</a>';
+                $suffix .= ' nowrap';
+                $link = '?m=admin&a=viewuser&user_id='.$this->tableRowData['user_id'];
+                $cell = '<a href="'.$link.'">'.$obj->contact_display_name.'</a>';
                 break;
 //END: object-based linkings
 
@@ -170,6 +171,7 @@ class w2p_Output_HTMLHelper
  *   of our standard 'view' for the page. ~ caseydk 16 Feb 2012
 */
             case '_name':
+                $prefix = ($prefix == 'project_short')  ? 'project' : $prefix;
                 $prefix = ($prefix == 'dept')  ? 'department' : $prefix;
                 $prefix = ($prefix == 'message')  ? 'forum' : $prefix;
                 $page   = ($prefix == 'forum') ? 'viewer&message_id='.$this->tableRowData['message_id'] : 'view';
@@ -188,6 +190,18 @@ class w2p_Output_HTMLHelper
             case '_creator':
 			case '_owner':
             case '_updator':
+                $suffix .= ' nowrap';
+                if ((int) $value) {
+                    $obj = new CContact();
+                    $obj->findContactByUserid($value);
+                    $mod = substr($suffix, 1);
+                    $suffix .= ' nowrap';
+                    $link = '?m=admin&a=viewuser&user_id='.$this->tableRowData['user_id'];
+                    $cell = '<a href="'.$link.'">'.$obj->contact_display_name.'</a>';
+                } else {
+                    $cell = $value;
+                }
+                break;
                 // The above are all contact/user display names, the below are numbers.
             case '_count':
             case '_duration':
@@ -195,6 +209,7 @@ class w2p_Output_HTMLHelper
                 $cell = $value;
                 break;
             case '_size':
+                $suffix .= ' nowrap';
                 $cell = file_size($value);
                 break;
 			case '_budget':
@@ -209,6 +224,7 @@ class w2p_Output_HTMLHelper
                 break;
             case '_birthday':
 			case '_date':
+                $suffix .= ' nowrap';
                 $myDate = intval($value) ? new w2p_Utilities_Date($value) : null;
 				$cell = $myDate ? $myDate->format($this->df) : '-';
 				break;
@@ -216,7 +232,7 @@ class w2p_Output_HTMLHelper
             case '_datetime':
             case '_update':
             case '_updated':
-				$additional = 'nowrap="nowrap"';
+				$suffix .= ' nowrap';
                 $myDate = intval($value) ? new w2p_Utilities_Date($this->_AppUI->formatTZAwareTime($value, '%Y-%m-%d %T')) : null;
 				$cell = $myDate ? $myDate->format($this->dtf) : '-';
 				break;
@@ -231,7 +247,7 @@ class w2p_Output_HTMLHelper
             case '_complete':
             case '_assignment':
             case '_allocated':
-                $cell = $value.'%';
+                $cell = round($value).'%';
                 break;
             case '_password':
                 $cell = '('.$this->_AppUI->_('hidden').')';
@@ -241,7 +257,7 @@ class w2p_Output_HTMLHelper
                 $cell = number_format($value/100, 2);
                 break;
             case '_identifier':
-                $additional = 'style="background-color:#'.$value.'; color:'.bestColor($value).'"';
+                $additional = 'style="background-color:#'.$value.'; color:'.bestColor($value).'" ';
                 $cell = $this->tableRowData['project_percent_complete'].'%';
                 break;
             case '_problem':
@@ -255,12 +271,12 @@ class w2p_Output_HTMLHelper
                 break;
 			default:
 //TODO: use this when we get a chance - http://www.w3schools.com/cssref/pr_text_white-space.asp ?
-				$additional = 'nowrap="nowrap"';
+                $suffix .= ' nowrap';
                 $value = (isset($custom[$fieldName])) ? $custom[$fieldName][$value] : $value;
 				$cell = htmlspecialchars($value, ENT_QUOTES);
 		}
 
-        $begin = '<td '.$additional.' class="data '.$suffix.'">';
+        $begin = '<td '.$additional.'class="data '.$suffix.'">';
         $end = '</td>';
 
         return $begin . $cell . $end;
@@ -283,7 +299,6 @@ class w2p_Output_HTMLHelper
 
     public static function renderColumn(w2p_Core_CAppUI $AppUI, $fieldName, $row)
     {
-
         trigger_error("The static method renderColumn has been deprecated and will be removed by v4.0.", E_USER_NOTICE);
 
         $last_underscore = strrpos($fieldName, '_');
@@ -298,6 +313,7 @@ class w2p_Output_HTMLHelper
 				break;
 			case '_budget':
 				$s .= '<td>';
+                global $w2Pconfig;
 				$s .= $w2Pconfig['currency_symbol'];
 				$s .= formatCurrency($row[$fieldName], $AppUI->getPref('CURRENCYFORM'));
 				$s .= '</td>';

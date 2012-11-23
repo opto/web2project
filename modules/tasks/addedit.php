@@ -3,32 +3,36 @@ if (!defined('W2P_BASE_DIR')) {
 	die('You should not access this file directly.');
 }
 
-$percent = array(0 => '0', 5 => '5', 10 => '10', 15 => '15', 20 => '20', 25 => '25', 30 => '30', 35 => '35', 40 => '40', 45 => '45', 50 => '50', 55 => '55', 60 => '60', 65 => '65', 70 => '70', 75 => '75', 80 => '80', 85 => '85', 90 => '90', 95 => '95', 100 => '100');
-$status = w2PgetSysVal('TaskStatus');
-$priority = w2PgetSysVal('TaskPriority');
-
-/**
- * Tasks :: Add/Edit Form
- *
- */
-
 $task_id = (int) w2PgetParam($_GET, 'task_id', 0);
-$perms = &$AppUI->acl();
+
+$task = new CTask();
+$task->task_id = $task_id;
+
+$obj = $task;
+$canAddEdit = $obj->canAddEdit();
+$canAuthor = $obj->canCreate();
+$canEdit = $obj->canEdit();
+if (!$canAddEdit) {
+	$AppUI->redirect(ACCESS_DENIED);
+}
 
 // load the record data
-$task = new CTask();
 $obj = $AppUI->restoreObject();
 if ($obj) {
-  $task = $obj;
-  $task_id = $task->task_id;
+    $task = $obj;
+    $task_id = $task->task_id;
 } else {
-  $task->loadFull(null, $task_id);
+    $task->loadFull(null, $task_id);
 }
 if (!$task && $task_id > 0) {
 	$AppUI->setMsg('Task');
 	$AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
 	$AppUI->redirect();
 }
+
+$percent = array(0 => '0', 5 => '5', 10 => '10', 15 => '15', 20 => '20', 25 => '25', 30 => '30', 35 => '35', 40 => '40', 45 => '45', 50 => '50', 55 => '55', 60 => '60', 65 => '65', 70 => '70', 75 => '75', 80 => '80', 85 => '85', 90 => '90', 95 => '95', 100 => '100');
+$status = w2PgetSysVal('TaskStatus');
+$priority = w2PgetSysVal('TaskPriority');
 
 $task_parent = (int) w2PgetParam($_GET, 'task_parent', $task->task_parent);
 
@@ -43,20 +47,18 @@ if (!$task_project) {
 }
 
 // check permissions
-if ($task_id) {
-	// we are editing an existing task
-	$canEdit = $perms->checkModuleItem('tasks', 'edit', $task_id);
-} else {
+$perms = &$AppUI->acl();
+if (!$task_id) {
 	// do we have access on this project?
 	$canEdit = $perms->checkModuleItem('projects', 'view', $task_project);
 	// And do we have add permission to tasks?
 	if ($canEdit) {
-		$canEdit = canAdd('tasks');
+		$canEdit = $canAuthor;
 	}
 }
 
 if (!$canEdit) {
-	$AppUI->redirect('m=public&a=access_denied&err=noedit');
+	$AppUI->redirect(ACCESS_DENIED);
 }
 if (isset($task->task_represents_project) && $task->task_represents_project) {
     $AppUI->setMsg('The selected task represents a subproject. Please view/edit this project instead.', UI_MSG_ERROR);
@@ -70,7 +72,7 @@ $durnTypes = w2PgetSysVal('TaskDurationType');
 
 // check the document access (public, participant, private)
 if (!$task->canAccess($AppUI->user_id)) {
-	$AppUI->redirect('m=public&a=access_denied&err=noaccess');
+	$AppUI->redirect(ACCESS_DENIED);
 }
 
 // pull the related project
@@ -84,38 +86,29 @@ $project->load($task_project);
 //   populated by the "getPermittedUsers" function.
 $users = $perms->getPermittedUsers('tasks');
 
-$root_tasks = $task->getRootTasks((int)$task_project);
+
 
 $projTasks = array();
-$task_parent_options = '';
 
 $parents = array();
 $projTasksWithEndDates = array($task->task_id => $AppUI->_('None')); //arrays contains task end date info for setting new task start date as maximum end date of dependenced tasks
 $all_tasks = array();
 
-$q = new w2p_Database_Query;
-$q->addQuery('task_id, task_name, task_end_date, task_start_date, task_milestone, task_parent, task_dynamic');
-$q->addTable('tasks');
-$q->addWhere('task_project = ' . (int)$task_project);
-$q->addWhere('task_id <> task_parent');
-$q->addOrder('task_start_date');
-$sub_tasks = $q->exec();
-
-if ($sub_tasks) {
-	while ($sub_task = $q->fetchRow()) {
-		// Build parent/child task list
-		$parents[$sub_task['task_parent']][] = $sub_task['task_id'];
-		$all_tasks[$sub_task['task_id']] = $sub_task;
-		build_date_list($projTasksWithEndDates, $sub_task);
-	}
+$subtasks = $task->getNonRootTasks($task_project);
+foreach ($subtasks as $sub_task) {
+    // Build parent/child task list
+    $parents[$sub_task['task_parent']][] = $sub_task['task_id'];
+    $all_tasks[$sub_task['task_id']] = $sub_task;
+    build_date_list($projTasksWithEndDates, $sub_task);
 }
-$q->clear();
 
-// let's iterate root tasks
+$task_parent_options = '';
+
+$root_tasks = $task->getRootTasks((int)$task_project);
 foreach ($root_tasks as $root_task) {
-	build_date_list($projTasksWithEndDates, $root_task);
+    build_date_list($projTasksWithEndDates, $root_task);
 	if ($root_task['task_id'] != $task_id) {
-		constructTaskTree($root_task);
+        $task_parent_options .= buildTaskTree($root_task, 0, array(), $all_tasks, $parents, $task_parent, $task_id);
 	}
 }
 

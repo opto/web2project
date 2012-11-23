@@ -36,49 +36,52 @@ class CFile extends w2p_Core_BaseObject {
         parent::__construct('files', 'file_id');
 	}
 
-	public function store() {
+    protected function hook_preStore() {
         global $helpdesk_available;
-
-        $stored = false;
 
         if ($helpdesk_available && $this->file_helpdesk_item != 0) {
             $this->addHelpDeskTaskLog();
         }
 
-        if ($this->{$this->_tbl_key} && $this->canEdit()) {
-            // If while editing a file we attach a new file, then we go ahead and set file_id to 0 so a new file object is created. We also set its owner to the current user.
-            // If not then we are just editing the file information alone. So we should leave the file_id as it is.
-            $this->file_parent = $this->file_id;
-            if ((int)$this->file_size > 0) {
-                $this->file_id = 0;
-                $this->file_owner = $this->_AppUI->user_id;
-            }
-            $stored = parent::store();
-        }
-        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
-            $this->file_owner = $this->_AppUI->user_id;
-            $q = $this->_getQuery();
-            $q->clear();
-            $q->addTable('files');
-           if (!$this->file_version_id) {
-                $q->addQuery('file_version_id');
-                $q->addOrder('file_version_id DESC');
-                $q->setLimit(1);
-                $latest_file_version = $q->loadResult();
-                $this->file_version_id = $latest_file_version + 1;
-            } else {
-                $q->addUpdate('file_checkout', '');
-                $q->addWhere('file_version_id = ' . (int)$this->file_version_id);
-                $q->exec();
-            }
-            $q->clear();
-
-            $this->file_date = $q->dbfnNowWithTZ();
-            $stored = parent::store();
-        }
-
-        return $stored;
+        parent::hook_preStore();
 	}
+
+    protected function hook_preCreate() {
+        $q = $this->_getQuery();
+        $q->addTable('files');
+
+        $this->file_owner = $this->_AppUI->user_id;
+        if (!$this->file_version_id) {
+            $q->addQuery('file_version_id');
+            $q->addOrder('file_version_id DESC');
+            $q->setLimit(1);
+            $latest_file_version = $q->loadResult();
+            $this->file_version_id = $latest_file_version + 1;
+        } else {
+            $q->addUpdate('file_checkout', '');
+            $q->addWhere('file_version_id = ' . (int)$this->file_version_id);
+            $q->exec();
+         }
+
+        $this->file_date = $q->dbfnNowWithTZ();
+        parent::hook_preCreate();
+    }
+
+    /*
+     * If while editing a file we attach a new file, then we go ahead and set
+     *   file_id to 0 so a new file object is created. We also set its owner to
+     *   the current user.
+     * If not then we are just editing the file information alone. So we should
+     *   leave the file_id as it is.
+     */
+    protected function hook_preUpdate() {
+        $this->file_parent = $this->file_id;
+        if ((int)$this->file_size > 0) {
+            $this->file_id = 0;
+            $this->file_owner = $this->_AppUI->user_id;
+        }
+        parent::hook_preUpdate();
+    }
 
 	public function hook_cron()
 	{
@@ -88,7 +91,7 @@ class CFile extends w2p_Core_BaseObject {
 		$q->addWhere('file_indexed = 0');
 		$unindexedFiles = $q->loadList(5, 'file_id');
 
-		foreach($unindexedFiles as $file_id => $metadata) {
+		foreach($unindexedFiles as $file_id => $notUsed) {
 			$this->load($file_id);
 			$this->indexStrings($this->_AppUI);
 		}
@@ -283,7 +286,6 @@ class CFile extends w2p_Core_BaseObject {
 
 	// move the file if the affiliated project was changed
 	public function moveFile($oldProj, $realname) {
-		global $w2Pconfig;
 		if (!is_dir(W2P_BASE_DIR . '/files/' . $this->file_project)) {
 			$res = mkdir(W2P_BASE_DIR . '/files/' . $this->file_project, 0777);
 			if (!$res) {
@@ -301,7 +303,6 @@ class CFile extends w2p_Core_BaseObject {
 
 	// duplicate a file into root
 	public function duplicateFile($oldProj, $realname) {
-		global $w2Pconfig;
 		if (!is_dir(W2P_BASE_DIR . '/files/0')) {
 			$res = mkdir(W2P_BASE_DIR . '/files/0', 0777);
 			if (!$res) {
@@ -320,7 +321,6 @@ class CFile extends w2p_Core_BaseObject {
 
 	// move a file from a temporary (uploaded) location to the file system
 	public function moveTemp($upload) {
-		global $w2Pconfig;
 		// check that directories are created
 		if (!is_dir(W2P_BASE_DIR . '/files')) {
 			$res = mkdir(W2P_BASE_DIR . '/files', 0777);
@@ -440,7 +440,7 @@ class CFile extends w2p_Core_BaseObject {
 
 	//function notifies about file changing
 	public function notify($notify) {
-        global $w2Pconfig, $locale_char_set, $helpdesk_available;
+        global $locale_char_set, $helpdesk_available;
 
         if ($notify == '1') {
             // if helpdesk_item is available send notification to assigned users
@@ -451,7 +451,6 @@ class CFile extends w2p_Core_BaseObject {
 
                 $task_log = new CHDTaskLog();
                 $task_log->overrideDatabase($this->_query);
-                $task_log_help_desk_id = $this->_hditem->item_id;
                 // send notifcation about new log entry
                 // 2 = TASK_LOG
                 $this->_hditem->notify(2, $task_log->task_log_id);
@@ -530,7 +529,7 @@ class CFile extends w2p_Core_BaseObject {
 	} //notify
 
 	public function notifyContacts($notifyContacts) {
-		global $w2Pconfig, $locale_char_set;
+		global $locale_char_set;
 
         if ($notifyContacts) {
             //if no project specified than we will not do anything

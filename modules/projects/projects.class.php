@@ -62,8 +62,8 @@ class CProject extends w2p_Core_BaseObject
     public $project_percent_complete = null;
     public $project_color_identifier = null;
     public $project_description = null;
-    public $project_target_budget = 0;
-    public $project_actual_budget = 0;
+    public $project_target_budget = null;
+    public $project_actual_budget = null;
     public $project_scheduled_hours = null;
     public $project_worked_hours = null;
     public $project_task_count = null;
@@ -73,8 +73,7 @@ class CProject extends w2p_Core_BaseObject
     public $project_priority = null;
     public $project_type = null;
     public $project_parent = null;
-    public $project_location = '';
-    public $project_last_task = 0;
+    public $project_location = null;
     public $project_original_parent = null;
     /*
      * @deprecated fields, kept to make sure the bind() works properly
@@ -130,7 +129,7 @@ class CProject extends w2p_Core_BaseObject
         return (count($this->_error)) ? false : true;
     }
 
-    public function loadFull($AppUI = null, $projectId)
+    public function loadFull($notUsed = null, $projectId)
     {
 
         $q = $this->_getQuery();
@@ -146,6 +145,7 @@ class CProject extends w2p_Core_BaseObject
 
         $this->company_name = '';
         $this->project_owner_name = '';
+        $this->project_last_task = 0;
         $this->user_name = '';
 
         $q->loadObject($this);
@@ -249,10 +249,7 @@ class CProject extends w2p_Core_BaseObject
 
         $objTask = new CTask();
         $objTask->overrideDatabase($this->_query);
-        // Copy each task into this project and get their deps
-        $objTask = new CTask();
-        $objTask->overrideDatabase($this->_query);
-        foreach ($tasks as $orig => $void) {
+        foreach ($tasks as $orig => $notUsed) {
             $objTask->load($orig);
             $destTask = $objTask->copy($this->project_id);
             $destTask->task_parent = (0 == $destTask->task_parent) ? $destTask->task_id : $destTask->task_parent;
@@ -302,7 +299,7 @@ class CProject extends w2p_Core_BaseObject
             $importedTasks[] = $newTask->task_id;
 
             if (is_array($result) && count($result)) {
-                foreach ($result as $key => $error_msg) {
+                foreach ($result as $notUsed => $error_msg) {
                     $errors[] = $newTask->task_name . ': ' . $error_msg;
                 }
             }
@@ -484,9 +481,9 @@ class CProject extends w2p_Core_BaseObject
      * @param int SQL-limit to limit the number of returned tasks
      * @return array List of criticalTasks
      */
-    public function getCriticalTasks($project_id = null, $limit = 1)
+    public function getCriticalTasks($project_id = 0, $limit = 1)
     {
-        $project_id = !empty($project_id) ? $project_id : $this->project_id;
+        $project_id = ($project_id) ? $project_id : $this->project_id;
 
         $q = $this->_getQuery();
         $q->addTable('tasks');
@@ -532,6 +529,9 @@ class CProject extends w2p_Core_BaseObject
         $stored = false;
 
         $this->w2PTrimAll();
+        if (!$this->isValid()) {
+            return false;
+        }
 
         // ensure changes of state in checkboxes is captured
         $this->project_active = (int) $this->project_active;
@@ -641,7 +641,7 @@ class CProject extends w2p_Core_BaseObject
 
             $custom_fields = new w2p_Core_CustomFields('projects', 'addedit', $this->project_id, 'edit');
             $custom_fields->bind($_POST);
-            $sql = $custom_fields->store($this->project_id); // Store Custom Fields
+            $custom_fields->store($this->project_id); // Store Custom Fields
 
             CTask::storeTokenTask($this->_AppUI, $this->project_id);
         }
@@ -650,7 +650,7 @@ class CProject extends w2p_Core_BaseObject
 
     public function notifyOwner($isNotNew)
     {
-        global $w2Pconfig, $locale_char_set;
+        global $locale_char_set;
 
         $mail = new w2p_Utilities_Mail;
 
@@ -664,6 +664,7 @@ class CProject extends w2p_Core_BaseObject
             $emailManager = new w2p_Output_EmailManager($this->_AppUI);
             $body = $emailManager->getProjectNotifyOwner($this, $isNotNew);
 
+            $mail->Subject($subject, $locale_char_set);
             $mail->Body($body, isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : '');
             $mail->To($user->user_email, true);
             $mail->Send();
@@ -672,7 +673,7 @@ class CProject extends w2p_Core_BaseObject
 
     public function notifyContacts($isNotNew)
     {
-        global $w2Pconfig, $locale_char_set;
+        global $locale_char_set;
 
         $subject = (intval($isNotNew)) ? "Project Updated: $this->project_name " : "Project Submitted: $this->project_name ";
 
@@ -714,7 +715,7 @@ class CProject extends w2p_Core_BaseObject
     public function getContactList()
     {
         if ($this->_AppUI->isActiveModule('contacts') && canView('contacts')) {
-            $q = new w2p_Database_Query();
+            $q = $this->getQuery();
             $q->addTable('contacts', 'c');
             $q->addQuery('c.*, d.dept_id');
             $q->addQuery('contact_display_name as contact_name');
@@ -740,7 +741,7 @@ class CProject extends w2p_Core_BaseObject
         }
     }
 
-    public static function getContacts($AppUI = null, $projectId)
+    public static function getContacts($notUsed = null, $projectId)
     {
         trigger_error("CProject::getContacts has been deprecated in v3.0 and will be removed by v4.0. Please use CProject->getContactList() instead.", E_USER_NOTICE);
 
@@ -768,7 +769,7 @@ class CProject extends w2p_Core_BaseObject
         }
     }
 
-    public static function getDepartments($AppUI = null, $projectId)
+    public static function getDepartments($notUsed = null, $projectId)
     {
         trigger_error("CProject::getDepartments has been deprecated in v3.0 and will be removed by v4.0. Please use CProject->getDepartmentList() instead.", E_USER_NOTICE);
 
@@ -779,22 +780,31 @@ class CProject extends w2p_Core_BaseObject
         return $project->getDepartmentList();
     }
 
-    public static function getForums($AppUI = null, $projectId)
+    public function getForumList()
     {
-        global $AppUI;
-
-		if ($AppUI->isActiveModule('forums') && canView('forums')) {
-			$q = new w2p_Database_Query();
+		if ($this->_AppUI->isActiveModule('forums') && canView('forums')) {
+			$q = $this->_getQuery();
 			$q->addTable('forums');
 			$q->addQuery('forum_id, forum_project, forum_description, forum_owner,
                 forum_name, forum_message_count, forum_create_date, forum_last_date,
 				project_name, project_color_identifier, project_id');
             $q->addJoin('projects', 'p', 'project_id = forum_project', 'inner');
-            $q->addWhere('forum_project = ' . (int) $projectId);
+            $q->addWhere('forum_project = ' . (int) $this->project_id);
             $q->addOrder('forum_project, forum_name');
 
             return $q->loadHashList('forum_id');
         }
+    }
+
+    public static function getForums($notUsed = null, $projectId)
+    {
+        trigger_error("CProject::getForums has been deprecated in v3.0 and will be removed by v4.0. Please use CProject->getForumList() instead.", E_USER_NOTICE);
+
+        $project = new CProject();
+        //TODO: We need to convert this from static to use ->overrideDatabase() for testing.
+        $project->project_id = $projectId;
+
+        return $project->getForumList();
     }
 
     public static function getCompany($projectId)
@@ -901,31 +911,24 @@ class CProject extends w2p_Core_BaseObject
     {
         // Note that this returns the *count* of projects.  If this is zero, it
         //   is evaluated as false, otherwise it is considered true.
+        $project_id = ($projectId) ? ($this->project_original_parent ? $this->project_original_parent : $this->project_id) : $projectId;
+
         $q = $this->_getQuery();
         $q->addTable('projects');
         $q->addQuery('COUNT(project_id)');
-        if ($projectId > 0) {
-            $q->addWhere('project_original_parent = ' . $projectId);
-        } else {
-            $q->addWhere('project_original_parent = ' . (int) ($this->project_original_parent ? $this->project_original_parent : $this->project_id));
-        }
-
-        // I hate how this one works... since the default project parent is
-        //   itself, so this will always have at least one result.
-        return ($q->loadResult() - 1);
-    }
-
-    public static function hasTasks($projectId)
-    {
-        // Note that this returns the *count* of tasks.  If this is zero, it is
-        //   evaluated as false, otherwise it is considered true.
-
-        $q = new w2p_Database_Query();
-        $q->addTable('tasks');
-        $q->addQuery('COUNT(distinct tasks.task_id) AS total_tasks');
-        $q->addWhere('task_project = ' . (int) $projectId);
+        $q->addWhere('project_original_parent = ' . (int) $project_id);
+        $q->addWhere('project_id <> ' . (int) $project_id);
 
         return $q->loadResult();
+    }
+
+    public static function hasTasks($projectId, $override = null)
+    {
+        trigger_error("CProject::hasTasks() has been deprecated in v3.0 and will be removed in v4.0. Please use CTask->getTaskCount() instead.", E_USER_NOTICE);
+
+        $task = new CTask();
+        $task->overrideDatabase($override);
+        return $task->getTaskCount($projectId);
     }
 
     public static function updateHoursWorked($project_id)
@@ -968,41 +971,31 @@ class CProject extends w2p_Core_BaseObject
         CTask::storeTokenTask($AppUI, $project_id);
     }
 
-    public function getTotalHours()
-    {
-        trigger_error("CProject->getTotalHours() has been deprecated in v2.0 and will be removed in v3.0", E_USER_NOTICE);
-
-        return $this->getTotalProjectHours();
-    }
-
+    /*
+     * This is an unnecessary function as of v2.x. Instead of calculating this on
+     *   demand every single time, we calculate it when a Task is created or deleted
+     *   and then store it on the projects table. Then we can just return that column.
+     *
+     * Also, we have to do the check below just in case the object hasn't been
+     *   loaded.
+     *
+     * @deprecated
+     */
     public function getTotalProjectHours()
     {
-        global $w2Pconfig;
+        trigger_error("CProject->getTotalProjectHours() has been deprecated in v3.0 and will be removed in v4.0. Please use the project_scheduled_hours column instead.", E_USER_NOTICE);
 
-        // now milestones are summed up, too, for consistence with the tasks duration sum
-        // the sums have to be rounded to prevent the sum form having many (unwanted) decimals because of the mysql floating point issue
-        // more info on http://www.mysql.com/doc/en/Problems_with_float.html
-        $q = $this->_getQuery();
-        $q->addTable('tasks');
-        $q->addQuery('ROUND(SUM(task_duration),2)');
-        $q->addWhere('task_project = ' . (int) $this->project_id . ' AND task_duration_type = 24 AND task_dynamic <> 1');
-        $days = $q->loadResult();
-        $q->clear();
+        if ('' == $this->project_name)
+        {
+            $this->load($this->project_id);
+        }
 
-        $q->addTable('tasks');
-        $q->addQuery('ROUND(SUM(task_duration),2)');
-        $q->addWhere('task_project = ' . (int) $this->project_id . ' AND task_duration_type = 1 AND task_dynamic <> 1');
-        $hours = $q->loadResult();
-
-        $total_project_hours = $days * $w2Pconfig['daily_working_hours'] + $hours;
-
-        return rtrim($total_project_hours, '.');
+        return $this->project_scheduled_hours;
     }
 
     //TODO: this method should be moved to CTaskLog
-    public function getTaskLogs($AppUI = null, $projectId, $user_id = 0, $hide_inactive = false, $hide_complete = false, $cost_code = 0)
+    public function getTaskLogs($notUsed = null, $projectId, $user_id = 0, $hide_inactive = false, $hide_complete = false, $cost_code = 0)
     {
-
         $q = $this->_getQuery();
 		$q->addTable('task_log');
 		$q->addQuery('DISTINCT task_log.*, user_username, t.*');
@@ -1063,4 +1056,87 @@ class CProject extends w2p_Core_BaseObject
         return $search;
     }
 
+    /*
+     * TODO: Everything below this is UGLY and needs cleanup.
+     */
+    public function getStructuredProjects($active_only = false)
+    {
+        //global $st_projects_arr;
+        $st_projects = array(0 => '');
+
+        $q = $this->getQuery();
+        $q->addTable('projects');
+        $q->addJoin('companies', '', 'projects.project_company = company_id', 'inner');
+        $q->addQuery('DISTINCT(projects.project_id), project_name, project_parent');
+        if ($this->project_original_parent) {
+            $q->addWhere('project_original_parent = ' . (int) $this->project_original_parent);
+        }
+        if ($this->project_status >= 0) {
+            $q->addWhere('project_status = ' . (int) $this->project_status);
+        }
+        if ($active_only) {
+            $q->addWhere('project_active = 1');
+        }
+        $q->addOrder('project_start_date, project_end_date');
+
+        $obj = new CCompany();
+        $obj->overrideDatabase($this->_query);
+        $obj->setAllowedSQL($this->_AppUI->user_id, $q);
+
+        $dpt = new CDepartment();
+        $dpt->overrideDatabase($this->_query);
+        $dpt->setAllowedSQL($this->_AppUI->user_id, $q);
+
+        $q->leftJoin('project_departments', 'pd', 'pd.project_id = projects.project_id' );
+        $q->leftJoin('departments', 'd', 'd.dept_id = pd.department_id' );
+
+        $st_projects = $q->loadList();
+        $tnums = count($st_projects);
+        for ($i = 0; $i < $tnums; $i++) {
+            $st_project = $st_projects[$i];
+            if (($st_project['project_parent'] == $st_project['project_id'])) {
+                $this->show_st_project($st_project);
+                $this->find_proj_child($st_projects, $st_project['project_id']);
+            }
+        }
+
+        return $this->st_projects_arr;
+    }
+
+    public function find_proj_child(&$tarr, $parent, $level = 0) {
+        $level = $level + 1;
+        $n = count($tarr);
+        for ($x = 0; $x < $n; $x++) {
+            if ($tarr[$x]['project_parent'] == $parent && $tarr[$x]['project_parent'] != $tarr[$x]['project_id']) {
+                $this->show_st_project($tarr[$x], $level);
+                $this->find_proj_child($tarr, $tarr[$x]['project_id'], $level);
+            }
+        }
+    }
+
+    protected function show_st_project(&$a, $level = 0) {
+        $this->st_projects_arr[] = array($a, $level);
+    }
+
+    public function getProjects()
+    {
+        $st_projects = array(0 => '');
+
+        $q = $this->_getQuery();
+        $q->addTable('projects');
+        $q->addQuery('project_id, project_name, project_parent');
+        $q->addOrder('project_name');
+        $st_projects = $q->loadHashList('project_id');
+
+        $this->reset_project_parents($st_projects);
+        return $st_projects;
+    }
+
+    protected function reset_project_parents(&$projects)
+    {
+        foreach ($projects as $key => $project) {
+            if ($project['project_id'] == $project['project_parent'])
+                $projects[$key][2] = '';
+        }
+    }
 }

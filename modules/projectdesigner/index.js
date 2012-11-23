@@ -1,9 +1,9 @@
 /* $Id$ $URL$ */
 function update_workspace(id) {
 	var tr = document.getElementById(id);
-	(tr.style.display == "none") ? eval('document.frmWorkspace.opt_view_'+id+'.value=0') : eval('document.frmWorkspace.opt_view_'+id+'.value=1');      
-	(tr.style.display == "none") ? eval('document.editFrm.opt_view_'+id+'.value=0') : eval('document.editFrm.opt_view_'+id+'.value=1');      
-	(tr.style.display == "none") ? eval('document.frm_bulk.opt_view_'+id+'.value=0') : eval('document.frm_bulk.opt_view_'+id+'.value=1');      
+	(tr.style.display == "none") ? eval('document.frmWorkspace.pd_option_view_'+id+'.value=0') : eval('document.frmWorkspace.pd_option_view_'+id+'.value=1');
+	(tr.style.display == "none") ? eval('document.editFrm.pd_option_view_'+id+'.value=0') : eval('document.editFrm.pd_option_view_'+id+'.value=1');
+	(tr.style.display == "none") ? eval('document.frm_bulk.pd_option_view_'+id+'.value=0') : eval('document.frm_bulk.pd_option_view_'+id+'.value=1');
 }
 
 function expandAll() {
@@ -11,13 +11,13 @@ function expandAll() {
       expand_collapse('gantt', 'tblProjects', 'expand');
       expand_collapse('tasks', 'tblProjects', 'expand');
       expand_collapse('actions', 'tblProjects', 'expand');
-      expand_collapse('addtsks', 'tblProjects', 'expand');
+      expand_collapse('addtasks', 'tblProjects', 'expand');
       expand_collapse('files', 'tblProjects', 'expand');
       update_workspace('project');
       update_workspace('gantt');
       update_workspace('tasks');
       update_workspace('actions');
-      update_workspace('addtsks');
+      update_workspace('addtasks');
       update_workspace('files');
 }
 
@@ -26,108 +26,14 @@ function collapseAll() {
       expand_collapse('gantt', 'tblProjects', 'collapse');
       expand_collapse('tasks', 'tblProjects', 'collapse');
       expand_collapse('actions', 'tblProjects', 'collapse');
-      expand_collapse('addtsks', 'tblProjects', 'collapse');
+      expand_collapse('addtasks', 'tblProjects', 'collapse');
       expand_collapse('files', 'tblProjects', 'collapse');
       update_workspace('project');
       update_workspace('gantt');
       update_workspace('tasks');
       update_workspace('actions');
-      update_workspace('addtsks');
+      update_workspace('addtasks');
       update_workspace('files');
-}
-
-/**
-* @modify_reason calculating duration does not include time information and cal_working_days stored in config.php
-*/
-function calcDuration(form,start_date,end_date,duration_fld,durntype_fld) {
-
-	var int_st_date = new String(start_date.value);
-	var int_en_date = new String(end_date.value);
-
-	var sDate = new Date(int_st_date.substring(0,4),(int_st_date.substring(4,6)-1),int_st_date.substring(6,8), int_st_date.substring(8,10), int_st_date.substring(10,12));
-	var eDate = new Date(int_en_date.substring(0,4),(int_en_date.substring(4,6)-1),int_en_date.substring(6,8), int_en_date.substring(8,10), int_en_date.substring(10,12));
-	var s = Date.UTC(int_st_date.substring(0,4),(int_st_date.substring(4,6)-1),int_st_date.substring(6,8), int_st_date.substring(8,10), int_st_date.substring(10,12));
-	var e = Date.UTC(int_en_date.substring(0,4),(int_en_date.substring(4,6)-1),int_en_date.substring(6,8), int_en_date.substring(8,10), int_en_date.substring(10,12));
-	var durn = (e - s) / hourMSecs; //hours absolute diff start and end
-	var durn_abs = durn;	
-
-	//now we should subtract non-working days from durn variable
-	var duration = durn  / 24;
-	var weekendDays = 0;
-	var myDate = new Date(int_st_date.substring(0,4), (int_st_date.substring(4,6)-1),int_st_date.substring(6,8), int_st_date.substring(8,10));
-	for (var i = 0; i < duration; i++) {
-		//var myDate = new Date(int_st_date.substring(0,4), (int_st_date.substring(4,6)-1),int_st_date.substring(6,8), int_st_date.substring(8,10));
-		var myDay = myDate.getDate();
-		if ( !isInArray(working_days, myDate.getDay()) ) {
-			weekendDays++;
-		}
-		myDate.setDate(myDay + 1);
-	}
-	
-	//calculating correct durn value
-	durn = durn - weekendDays*24;	// total hours minus non-working days (work day hours)
-
-	// check if the last day is a weekendDay
-	// if so we subtracted some hours too much before, 
-	// we have to fill up the last working day until cal_day_start + daily_working_hours
-	if ( !isInArray(working_days, eDate.getDay()) && eDate.getHours() != cal_day_start) {
-		durn = durn + Math.max(0, (cal_day_start + daily_working_hours - eDate.getHours()));
-	}
-	
-	//could be 1 or 24 (based on TaskDurationType value) - We'll consider it 1 = hours
-	//var durnType = parseFloat(f.task_duration_type.value);	
-	var durnType = parseFloat(durntype_fld.value);	
-	durn /= durnType;
-	//alert(durn);
-	if (durnType == 1){
-		// durn is absolute weekday hours
-		
-		//if first day equals last day we're already done
-		if( durn_abs < daily_working_hours ) {
-
-			durn = durn_abs;
-
-		} else { //otherwise we need to process first and end day different;
-	
-			// Hours worked on the first day
-			var first_day_hours = cal_day_end - sDate.getHours();
-			if (first_day_hours > daily_working_hours)
-				first_day_hours = daily_working_hours;
-
-			// Hours worked on the last day
-			var last_day_hours = eDate.getHours() - cal_day_start;
-			if (last_day_hours > daily_working_hours)
-				last_day_hours = daily_working_hours;
-
-			// Total partial day hours
-			var partial_day_hours = first_day_hours + last_day_hours;
-
-			// Full work days
-			var full_work_days = (durn - partial_day_hours) / 24;
-
-			// Total working hours
-			durn = Math.floor(full_work_days) * daily_working_hours + partial_day_hours;
-			
-			// check if the last day is a weekendDay
-			// if so we subtracted some hours too much before, 
-			// we have to fill up the last working day until cal_day_start + daily_working_hours
-			if ( !isInArray(working_days, eDate.getDay()) && eDate.getHours() != cal_day_start) {
-				durn = durn + Math.max(0, (cal_day_start + daily_working_hours - eDate.getHours()));
-			}
-		}
-
-	} else if (durnType == 24 ) {
-		//we should talk about working days so a task duration of 41 hrs means 6 (NOT 5) days!!!
-		if (durn > Math.round(durn)) {
-			durn++;
-		}
-	}
-
-	if ( s > e ) {
-		//alert( 'End date is before start date!');
-	} else {
-		duration_fld.value = Math.round(durn);
-	}
 }
 /**
 * Get the end of the previous working day 
@@ -187,14 +93,14 @@ function removeBulkComponent(li) {
 
 
 function getStyle(nodeName, sStyle, iStyle) {
-      var element = document.getElementById(nodeName);
-      if (window.getComputedStyle) {
-            var style=document.defaultView.getComputedStyle(element,null);
-      	var value = style.getPropertyValue(sStyle);
-      } else {
-            var value = eval("element.currentStyle." + iStyle);
-      }
-      return value;
+    var element = document.getElementById(nodeName);
+    if (window.getComputedStyle) {
+        var style=document.defaultView.getComputedStyle(element,null);
+        var value = style.getPropertyValue(sStyle);
+    } else {
+        var value = eval("element.currentStyle." + iStyle);
+    }
+    return value;
 }
 
 function select_all_rows(cmbObj, elements_name) {
@@ -202,9 +108,9 @@ function select_all_rows(cmbObj, elements_name) {
     var checkboxes = document.getElementsByName(elements_name);
 
     // check all
-    for each (var checkbox in checkboxes) {
-        id = checkbox.value;
-        checkbox.checked = checked;
+    for (var i in checkboxes) {
+        id = checkboxes[i].value;
+        checkboxes[i].checked = checked;
 
         result = (checked) ? addBulkComponent(id) : removeBulkComponent(id);
     }
@@ -304,13 +210,8 @@ function select_row(box, id, form_name){
 	}
 }
 
-/*
- *  This has been deprecated in favor of using nothing else to designate the row.
- *
- *  @deprecated
- */
 function select_box(box, id, row_id, form_name){
-	var f = eval('document.'+form_name);
+    var f = eval('document.'+form_name);
 	if (eval('f.selected_task_'+id)) {
 		var check = eval('f.'+box+'_'+id+'.checked');
 		boxObj = eval('f.elements["'+box+'_'+id+'"]');

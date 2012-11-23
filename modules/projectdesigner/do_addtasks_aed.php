@@ -6,18 +6,12 @@ global $AppUI;
 
 $perms = &$AppUI->acl();
 if (!canAdd('tasks')) {
-	$AppUI->redirect('m=public&a=access_denied');
+	$AppUI->redirect(ACCESS_DENIED);
 }
 
 //Lets store the panels view options of the user:
-$pdo = new CProjectDesignerOptions();
-$pdo->pd_option_user = $AppUI->user_id;
-$pdo->pd_option_view_project = w2PgetParam($_POST, 'opt_view_project', 0);
-$pdo->pd_option_view_gantt = w2PgetParam($_POST, 'opt_view_gantt', 0);
-$pdo->pd_option_view_tasks = w2PgetParam($_POST, 'opt_view_tasks', 0);
-$pdo->pd_option_view_actions = w2PgetParam($_POST, 'opt_view_actions', 0);
-$pdo->pd_option_view_addtasks = w2PgetParam($_POST, 'opt_view_addtsks', 0);
-$pdo->pd_option_view_files = w2PgetParam($_POST, 'opt_view_files', 0);
+$pdo = new CProjectDesigner();
+$pdo->bind($_POST);
 $pdo->store();
 
 //Lets store the task lines
@@ -54,6 +48,7 @@ foreach ($elements as $element => $on) {
 		$tline->task_access = $elements['add_task_access_' . $on];
 		$tline->task_description = $elements['add_task_description_' . $on] ? $elements['add_task_description_' . $on] : '';
 		$tline->task_owner = $AppUI->user_id;
+        $tline->task_dynamic = 31;
 		if ($elements['add_task_extra_' . $on] == '1') {
 			$tline->task_milestone = '1';
 		} elseif ($elements['add_task_extra_' . $on] == '2') {

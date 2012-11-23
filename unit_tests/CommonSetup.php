@@ -16,7 +16,7 @@ global $w2p_performance_dbtime;
 global $w2p_performance_old_dbqueries;
 global $AppUI;
 
-require_once '../base.php';
+require_once 'base.php';
 require_once W2P_BASE_DIR . '/includes/main_functions.php';
 require_once W2P_BASE_DIR . '/includes/config.php';
 require_once W2P_BASE_DIR . '/includes/db_adodb.php';
@@ -57,7 +57,8 @@ class CommonSetup extends PHPUnit_Framework_TestCase {
     protected $mockDB = null;
     protected $_AppUI = null;
 
-    protected function setUp() {
+    protected function setUp()
+    {
         parent::setUp();
 
         global $AppUI;
@@ -66,4 +67,30 @@ class CommonSetup extends PHPUnit_Framework_TestCase {
         $this->mockDB = new w2p_Mocks_Query();
     }
 
+    protected function tearDown()
+    {
+        unset($this->obj, $this->post_data);
+
+        parent::tearDown();
+    }
+
+    /**
+     * Tests the Attributes of a new object.
+     *
+     * This method is not prefixed with 'test' because it is a helper and should not be tested on its own.
+     */
+    public function objectPropertiesTest($classname, $fieldCount, $removeFields = array())
+    {
+        $params = get_object_vars($this->obj);
+        foreach($removeFields as $key => $value) {
+            unset($params[$value]);
+        }
+
+        $this->assertInstanceOf($classname,     $this->obj);
+        $this->assertEquals($fieldCount,        count($params));
+        
+        foreach($params as $key => $value) {
+            $this->assertNull($this->obj->{$key}, "$classname::$key did not pass validation");
+        }
+    }
 }

@@ -163,16 +163,8 @@ class CTask_Log extends w2p_Core_BaseObject
 		$this->task_log_problem = (int) $this->task_log_problem;
 	}
 
-	/**
-	 * Stores the current task log in the database updating the task_log_updated
-	 * field appropriately. Then updates total hours worked cache on task.
-	 *
-	 * @return void
-	 *
-	 * @access public
-	 */
-	public function store()
-	{
+    protected function hook_preStore()
+    {
 		$q = $this->_getQuery();
 		$this->task_log_updated = $q->dbfnNowWithTZ();
 
@@ -188,20 +180,27 @@ class CTask_Log extends w2p_Core_BaseObject
 		$this->task_log_hours = $this->task_log_hours;
 		$this->task_log_costcode = cleanText($this->task_log_costcode);
 
-        if ($this->{$this->_tbl_key} && $this->canEdit()) {
-            $stored = parent::store();
-		}
-        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
-			$this->task_log_created = $q->dbfnNowWithTZ();
-            $stored = parent::store();
+		if (!((float)$this->task_log_hours)) {
+			// before evaluating a non-float work hour as 0 lets try to check if user is trying
+			// to enter in hour:minute format and convert it to decimal. If that is not the format
+			// then we consider that there was no time worked at all (i.e. 0 time worked)
+			$log_time_hour = $log_time_minute = 0;
+			list($log_time_hour, $log_time_minute) = explode(':', $this->task_log_hours);
+			$this->task_log_hours = ((int)$log_time_hour) + (((int)$log_time_minute) / 60);
+			if (!((float)$this->task_log_hours)) {
+				$this->task_log_hours = 0;
+			}
 		}
 
-        if ($stored) {
-            $this->updateTaskSummary(null, $this->task_log_task);
-        }
+        parent::hook_preStore();
+    }
 
-		return $stored;
-	}
+    protected function  hook_preCreate() {
+        $q = $this->_getQuery();
+        $this->task_log_created = $q->dbfnNowWithTZ();
+
+        parent::hook_preCreate();
+    }
 
 	/**
 	 * Deletes the current task log from the database. Then updated total hours
@@ -214,16 +213,24 @@ class CTask_Log extends w2p_Core_BaseObject
 	public function delete()
 	{
 		$this->load($this->task_log_id);
-		$task_id = $this->task_log_task;
+		$this->_task_id = $this->task_log_task;
 
-        if ($this->canDelete()) {
-			$result = parent::delete();
-
-			$this->updateTaskSummary(null, $task_id);
-		}
-		return $result;
+        return parent::delete();
 	}
 
+    protected function hook_postStore()
+    {
+        $this->updateTaskSummary(null, $this->task_log_task);
+
+        parent::hook_postStore();
+    }
+
+    protected function hook_postDelete()
+    {
+        $this->updateTaskSummary(null, $this->_task_id);
+
+        parent::hook_postStore();
+    }
 	/**
 	 * Updates the variable information on the task.
 	 *
@@ -231,9 +238,9 @@ class CTask_Log extends w2p_Core_BaseObject
 	 *
 	 * @return void
 	 *
-	 * @access private
+	 * @access protected
 	 */
-	protected function updateTaskSummary($AppUI = null, $task_id)
+	protected function updateTaskSummary($notUsed = null, $task_id)
 	{
         $q = $this->_getQuery();
 
@@ -265,6 +272,7 @@ class CTask_Log extends w2p_Core_BaseObject
             $q->addTable('tasks');
             $q->addUpdate('task_percent_complete', $percentComplete);
             $q->addUpdate('task_end_date', $task_end_date);
+            $q->addWhere('task_id = ' . (int)$task_id);
             $success = $q->exec();
 
             if (!$success) {
@@ -300,18 +308,15 @@ class CTask_Log extends w2p_Core_BaseObject
     {
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
-//TODO: I *really* hate that this is modifying the underlying object, isValid should not change anything.
-		if (!((float)$this->task_log_hours)) {
-			// before evaluating a non-float work hour as 0 lets try to check if user is trying
-			// to enter in hour:minute format and convert it to decimal. If that is not the format
-			// then we consider that there was no time worked at all (i.e. 0 time worked)
-			$log_time_hour = $log_time_minute = 0;
-			list($log_time_hour, $log_time_minute) = explode(':', $this->task_log_hours);
-			$this->task_log_hours = ((int)$log_time_hour) + (((int)$log_time_minute) / 60);
-			if (!((float)$this->task_log_hours)) {
-				$this->task_log_hours = 0;
-			}
-		}
+        if (0 == (int) $this->task_log_task) {
+            $this->_error['task_log_task'] = $baseErrorMsg . 'task log task is NULL';
+        }
+        if ('' == trim($this->task_log_name)) {
+            $this->_error['task_log_name'] = $baseErrorMsg . 'task log name is not set';
+        }
+        if (0 == (int) $this->task_log_creator) {
+            $this->_error['task_log_creator'] = $baseErrorMsg . 'task log creator is NULL';
+        }
 
         return (count($this->_error)) ? false : true;
     }

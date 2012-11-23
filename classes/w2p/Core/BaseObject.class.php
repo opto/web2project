@@ -155,7 +155,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
     public function bind($hash, $prefix = null, $checkSlashes = true, $bindAll = false)
     {
         if (!is_array($hash)) {
-            $this->_error = get_class($this) . '::bind failed.';
+            $this->_error[] = get_class($this) . '::bind failed.';
             return false;
         } else {
             /*
@@ -201,6 +201,7 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
         $hash = $q->loadHash();
         //If no record was found send false because there is no data
         if (!$hash) {
+            $this->$k = null;
             return false;
         }
         $q->bindHashToObject($hash, $this, null, $strip);
@@ -325,10 +326,9 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
 
         $k = $this->_tbl_key;
         // NOTE: I don't particularly like this but it wires things properly.
-        $event = ($this->$k) ? 'Update' : 'Create';
-        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'pre' . $event . 'Event'));
+        $this->_event = ($this->$k) ? 'Update' : 'Create';
+        $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'pre' . $this->_event . 'Event'));
 
-        $k = $this->_tbl_key;
         $q = $this->_getQuery();
 
         /*
@@ -345,10 +345,11 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
             $store_type = 'add';
             $result = $q->insertObject($this->_tbl, $this, $this->_tbl_key);
         }
+        $result = ('' == $result) ? true : $result;
 
         if ($result) {
             // NOTE: I don't particularly like how the name is generated but it wires things properly.
-            $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'post' . $event . 'Event'));
+            $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'post' . $this->_event . 'Event'));
             $this->_dispatcher->publish(new w2p_Core_Event(get_class($this), 'postStoreEvent'));
         } else {
             $this->_error['store'] = db_error();
@@ -357,6 +358,14 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
         return $result;
     }
 
+    public function canAddEdit()
+    {
+        if ($this->_tbl_key) {
+            return $this->canEdit();
+        } else {
+            return $this->canCreate();
+        }
+    }
     public function canAccess() {
         return $this->_perms->checkModuleItem($this->_tbl_module, 'access');
     }
@@ -379,66 +388,34 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
      * 	@param array Optional array to compiles standard joins: format [label=>'Label',name=>'table name',idfield=>'field',joinfield=>'field']
      * 	@return true|false
      */
-    public function canDelete(&$msg = '', $oid = null, $joins = null)
+    public function canDelete($notUsed = '', $oid = null, $joins = null)
     {
-        $result = false;
-
-        // First things first.  Are we allowed to delete?
-        if (!$this->_perms->checkModuleItem($this->_tbl_module, 'delete', $oid)) {
-            $this->_error['noDeletePermission'] = $this->_AppUI->_('noDeletePermission');
-            return false;
-        }
-
         $k = $this->_tbl_key;
         if ($oid) {
             $this->$k = intval($oid);
         }
+
+        // First things first.  Are we allowed to delete?
+        if (!$this->_perms->checkModuleItem($this->_tbl_module, 'delete', $this->$k)) {
+            $this->_error['noDeletePermission'] = $this->_AppUI->_('noDeletePermission');
+            return false;
+        }
+
         if (is_array($joins)) {
-            $select = $k;
-            $join = '';
-
-            $q = $this->_getQuery();
-            $q->addTable($this->_tbl);
-            $q->addWhere($k . ' = \'' . $this->$k . '\'');
-            $q->addGroup($k);
             foreach ($joins as $table) {
-                $q->addQuery('COUNT(DISTINCT ' . $table['idfield'] . ') AS ' . $table['idfield']);
-                $q->addJoin($table['name'], $table['name'], $table['joinfield'] . ' = ' . $k);
-            }
-
-            $obj = (object) $q->loadHash();
-            if (!$obj && '' != db_error()) {
-                $this->_error['db_error'] = db_error();
-                return false;
-            }
-            $msg = array();
-            foreach ($joins as $table) {
-                $k = $table['idfield'];
-                if (isset($obj->$k) && $obj->$k) {
-                    $msg[$table['label']] = $this->_AppUI->_($table['label']);
-                    $this->_error['noDeleteRecord-' . $table['label']] = $table['label'];
-                }
-            }
-
-            if (count($msg)) {
-                $msg = $this->_AppUI->_('noDeleteRecord') . ': ' . implode(', ', $msg);
-                return false;
-            } else {
-                $msg = array();
-                foreach ($joins as $table) {
-                    $k = $table['idfield'];
-                    if (isset($obj->$k) && $obj->$k) {
-                        $this->_error['canDelete-error-' . $table['name']] = db_error();
-                    }
-                }
-
-                if (0 == count($this->_error)) {
-                    $result = true;
+                $q = $this->_getQuery();
+                $q->addQuery('COUNT(*)');
+                $q->addTable($table['name']);
+                $q->addWhere($table['joinfield'] . ' = \'' . $this->$k . '\'');
+                $records = (int) $q->loadResult();
+                if ($records) {
+                    $this->_error['noDeleteRecord-' . $table['label']] = 
+                            $this->_AppUI->_('You cannot delete this item. It is currently considered a ' . $table['label']);
                 }
             }
         }
 
-        return $result;
+        return (count($this->_error)) ? false : true;
     }
 
     /**
@@ -648,12 +625,20 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
     }
 
     /*
-     *  This pre/post functions are only here for completeness.
-     *    NOTE: Each of these actions gets called after the permissions check.
-     *    NOTE: The pre* actions happen whether the desired action - create,
-     *      update, load, and delete - actually occur.
-     *    NOTE: The post* actions only happen if the desired action - create,
-     *      update, load, and delete - is successful.
+     *  This pre/post functions are only here for completeness. They are meant to
+     *    be overridden by subclasses as needed.
+     *
+     *  It is important to remember the hook_pre* methods are called:
+     *    -  before the object validation occurs. If you need to do something to
+     *       make the object valid, this is where you do it.
+     *    -  before the permissions check. So don't do anything dependent on specific
+     *       access rights unless you check them yourself.
+     *
+     *  It is important to remember the hook_post* methods are called:
+     *    -  if and only if the corresponding method executed successfully.
+     *    -  For example, hook_postDelete() will execute only after the object is
+     *       deleted as expected. In this case, don't count on using object properties.
+     *
      */
 
     protected function hook_preStore()
@@ -664,14 +649,11 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
     protected function hook_postStore()
     {
         //NOTE: This only happens if the create was successful.
-
-        $store_type = '';
-        
         $prefix = $this->_getColumnPrefixFromTableName($this->_tbl);
         
         $name = isset($this->{$prefix . '_name'}) ? $this->{$prefix . '_name'} : '';
         addHistory($this->_tbl, $this->{$this->_tbl_key}, 'add', $name . ' - ' .
-                $this->_AppUI->_('ACTION') . ': ' . $store_type . ' ' . $this->_AppUI->_('TABLE') . ': ' .
+                $this->_AppUI->_('ACTION') . ': ' . $this->_event . ' ' . $this->_AppUI->_('TABLE') . ': ' .
                 $this->_tbl . ' ' . $this->_AppUI->_('ID') . ': ' . $this->{$this->_tbl_key});
 
         return $this;
@@ -685,14 +667,11 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
     protected function hook_postCreate()
     {
         //NOTE: This only happens if the create was successful.
-
-        $store_type = '';
-        
         $prefix = $this->_getColumnPrefixFromTableName($this->_tbl);
         
         $name = isset($this->{$prefix . '_name'}) ? $this->{$prefix . '_name'} : '';
         addHistory($this->_tbl, $this->{$this->_tbl_key}, 'add', $name . ' - ' .
-                $this->_AppUI->_('ACTION') . ': ' . $store_type . ' ' . $this->_AppUI->_('TABLE') . ': ' .
+                $this->_AppUI->_('ACTION') . ': ' . $this->_event . ' ' . $this->_AppUI->_('TABLE') . ': ' .
                 $this->_tbl . ' ' . $this->_AppUI->_('ID') . ': ' . $this->{$this->_tbl_key});
 
         return $this;
@@ -706,14 +685,11 @@ abstract class w2p_Core_BaseObject extends w2p_Core_Event implements w2p_Core_Li
     protected function hook_postUpdate()
     {
         //NOTE: This only happens if the update was successful.
-
-        $store_type = '';
-        
         $prefix = $this->_getColumnPrefixFromTableName($this->_tbl);
         
         $name = isset($this->{$prefix . '_name'}) ? $this->{$prefix . '_name'} : '';
         addHistory($this->_tbl, $this->{$this->_tbl_key}, 'update', $name . ' - ' .
-                $this->_AppUI->_('ACTION') . ': ' . $store_type . ' ' . $this->_AppUI->_('TABLE') . ': ' .
+                $this->_AppUI->_('ACTION') . ': ' . $this->_event . ' ' . $this->_AppUI->_('TABLE') . ': ' .
                 $this->_tbl . ' ' . $this->_AppUI->_('ID') . ': ' . $this->{$this->_tbl_key});
         return $this;
     }

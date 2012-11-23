@@ -18,7 +18,7 @@ div {
     font-size:  8pt;
 }
 
-div.std { 
+div.std {
 	background: #fafafa;
     height:     1%;
     overflow:   hidden;
@@ -58,6 +58,42 @@ div.std {
 }
 /* End: Header Bar & Navigation for all pages */
 
+.module-title {
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+}
+
+.module-title .icon {
+    float: left;
+    margin: 3px;
+}
+
+.module-title h1 {
+    float: left;
+    margin-top: 15px;
+}
+
+.module-nav {
+    float: left;
+    margin: -15px 0 5px;
+    width: 100%;
+}
+
+.module-title .crumb-right {
+    float: right;
+    margin: 10px 0;
+}
+
+.module-nav .crumb-right {
+    float: right;
+    margin: 0;
+}
+
+.crumb-right li {
+    list-style-type: none;
+    margin: 0 3px;
+}
 
 .system-info P {
 	color: #000000;
@@ -71,39 +107,67 @@ div.std {
 .center {
     text-align: center;
 }
-.right {
+._duration {
     text-align: right;
 }
 
-td.day span img, td.weekend span img,
-td.today span img, td.empty span img
-{
-	display: inline;
+._identifier {
+    border: outset #eeeeee 1px;
+}
+input[type="checkbox"] {
+    margin-left: 10px;
 }
 
-.selectborder {
-    border: 3px solid #FF0000;
-    padding: 1px 0 2px;
-    display: inline;
+/*
+ * These are the styles attached to the list screens which are urls like:
+ *      ./index.php?m=projects
+ *      ./index.php?m=companies
+ * These two styles handle all of the mouseover highlighting for all lists
+ *   whether it's projects, tasks, links, or anything else.
+ */
+.list ._name {          width: 25%; }
+.list ._description {   width: 30%; }
+
+.list ._complete, .list ._created, .list ._date, .list ._datetime, .list ._duration,
+    .list ._hours, .list ._update, .list ._updated, .list ._worked  {
+    text-align: center;
+}
+.list ._author, .list ._creator, .list ._name, .list ._owner, .list ._updator {
+    white-space:nowrap;
+}
+/* These two styles handle all of the mouseover highlighting in the lists. */
+table.list tr:hover td {
+    background-color: #ffffcc;
+    color: #000;
+    font-style: italic;
+}
+table.list tr:hover td._name {
+    font-weight: bold;
 }
 
+div.clear {
+    clear: both;
+}
+
+/*
+ * These are the styles attached to the views which are urls like:
+ *      ./index.php?m=projects&a=view&id=1
+ *      ./index.php?m=companies&a=view&id=1
+ */
 .view {
     border-spacing: 0px;
     padding-left: 0px;
     text-align: left;
     width: 100%;
 }
-
 #view-header {
     margin-bottom: 5px;
     padding: 4px;
 }
-
 .view-column {
     padding-left: 4px;
     padding-top: 4px;
 }
-
 .view td.data {
     background-color: #FFFFFF;
     -moz-border-radius:3px;
@@ -116,9 +180,7 @@ td.today span img, td.empty span img
     width:  100%;
 }
 
-
-
-.view ._date, .view ._owner {
+.view ._date, .view ._owner, .view ._status {
     text-align: left;
 }
 .list ._name {          width: 25%; }
@@ -210,3 +272,6 @@ table.list tr:hover td._name {
     width:      45%;
 }
 
+.nowrap {
+    white-space:nowrap;
+}

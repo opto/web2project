@@ -165,7 +165,6 @@ class w2p_Core_Module extends w2p_Core_BaseObject {
 
     public function check() {
         $errorArray = array();
-        $baseErrorMsg = get_class($this) . '::deploy-check failed - ';
 
         return $errorArray;
     }
@@ -272,7 +271,7 @@ class w2p_Core_Module extends w2p_Core_BaseObject {
 
 //TODO: break these out to a separate w2p_Core_ModuleConfig class
     public function getCustomizableViews($module) {
-		$q = new w2p_Database_Query();
+		$q = $this->_getQuery();
 		$q->addTable('module_config');
 		$q->addQuery('distinct(module_config_name)');
 		$q->addWhere("module_name = '$module'");

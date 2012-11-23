@@ -48,7 +48,7 @@ class CForum extends w2p_Core_BaseObject
         return (count($this->_error)) ? false : true;
     }
 
-    public function getMessages($AppUI = null, $forum_id = 0, $message_id = 0, $sortDir = 'asc')
+    public function getMessages($notUsed = null, $forum_id = 0, $message_id = 0, $sortDir = 'asc')
     {
         $q = $this->_getQuery();
         $q->addTable('forums');
@@ -64,7 +64,7 @@ class CForum extends w2p_Core_BaseObject
         return $q->loadList();
     }
 
-    public function load($AppUI = null, $forum_id)
+    public function load($notUsed = null, $forum_id)
     {
         $q = $this->_getQuery();
         $q->addQuery('*');
@@ -73,7 +73,7 @@ class CForum extends w2p_Core_BaseObject
         $q->loadObject($this, true, false);
     }
 
-    public function loadFull($AppUI = null, $forum_id)
+    public function loadFull($notUsed = null, $forum_id)
     {
         $q = $this->_getQuery();
         $q->addTable('forums');
@@ -149,18 +149,10 @@ class CForum extends w2p_Core_BaseObject
         return $q->loadList();
     }
 
-    public function store()
-    {
-        $stored = false;
+    protected function hook_preCreate() {
+        $this->forum_create_date = $this->_AppUI->convertToSystemTZ($this->forum_create_date);
 
-        if ($this->{$this->_tbl_key} && $this->canEdit()) {
-            $stored = parent::store();
-        }
-        if (0 == $this->{$this->_tbl_key} && $this->canCreate()) {
-            $this->forum_create_date = $this->_AppUI->convertToSystemTZ($this->forum_create_date);
-            $stored = parent::store();
-        }
-        return $stored;
+        parent::hook_preCreate();
     }
 
     public function delete()

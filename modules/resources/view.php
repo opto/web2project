@@ -5,22 +5,21 @@ if (!defined('W2P_BASE_DIR')) {
 
 $resource_id = (int) w2PgetParam($_GET, 'resource_id', 0);
 
-// check permissions for this record
-$perms = &$AppUI->acl();
+$obj = new CResource();
+$obj->resource_id = $resource_id;
 
-$canView = $perms->checkModuleItem($m, 'view', $resource_id);
-if (!$canView) {
-  $AppUI->redirect('m=public&a=access_denied');
+$canEdit   = $obj->canEdit();
+$canView   = $obj->canView();
+$canAdd    = $obj->canCreate();
+$canAccess = $obj->canAccess();
+$canDelete = $obj->canDelete();
+
+if (!$canAccess || !$canView) {
+	$AppUI->redirect(ACCESS_DENIED);
 }
 
-$canAdd = $perms->checkModuleItem($m, 'add');
-$canEdit = $perms->checkModuleItem($m, 'edit', $resource_id);
-$canDelete = $perms->checkModuleItem($m, 'delete', $resource_id);
-
-$resource = new CResource();
-$resource->load($resource_id);
-
-if (!$resource) {
+$obj->load($resource_id);
+if (!$obj) {
 	$AppUI->setMsg('Resource');
 	$AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
 	$AppUI->redirect();
@@ -28,9 +27,8 @@ if (!$resource) {
 	$AppUI->savePlace();
 }
 
-// setup the title block
 $titleBlock = new w2p_Theme_TitleBlock('View Resource', 'resources.png', $m, $m . '.' . $a);
-$titleBlock->addCell();
+
 if ($canAdd) {
 	$titleBlock->addCell('<input type="submit" class="button" value="' . $AppUI->_('new resource') . '" />', '', '<form action="?m=resources&a=addedit" method="post" accept-charset="utf-8">', '</form>');
 }
@@ -76,19 +74,19 @@ if ($canDelete) {
             <table cellspacing="1" cellpadding="2" width="50%">
                 <tr>
                     <td align="right" nowrap="nowrap" width="5%"><?php echo $AppUI->_('Resource ID'); ?>:</td>
-                    <?php echo $htmlHelper->createCell('resource_key', $resource->resource_key); ?>
+                    <?php echo $htmlHelper->createCell('resource_key', $obj->resource_key); ?>
                 </tr>
                 <tr>
                     <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Resource Name'); ?>:</td>
-                    <?php echo $htmlHelper->createCell('resource_name-nolink', $resource->resource_name); ?>
+                    <?php echo $htmlHelper->createCell('resource_name-nolink', $obj->resource_name); ?>
                 </tr>
                 <tr>
                     <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Type'); ?>:</td>
-                    <?php echo $htmlHelper->createCell('resource_type', $resource->resource_type, $customLookups); ?>
+                    <?php echo $htmlHelper->createCell('resource_type', $obj->resource_type, $customLookups); ?>
                 </tr>
                 <tr>
                     <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Max Allocation %'); ?>:</td>
-                    <?php echo $htmlHelper->createCell('allocation_assignment', $resource->resource_max_allocation); ?>
+                    <?php echo $htmlHelper->createCell('allocation_assignment', $obj->resource_max_allocation); ?>
                 </tr>
             </table>
         </td>
@@ -99,7 +97,7 @@ if ($canDelete) {
             <table cellspacing="0" cellpadding="2" border="0" width="100%">
                 <tr>
                     <td class="hilite">
-                        <?php echo w2p_textarea($resource->resource_note); ?>&nbsp;
+                        <?php echo w2p_textarea($obj->resource_note); ?>&nbsp;
                     </td>
                 </tr>
             </table>

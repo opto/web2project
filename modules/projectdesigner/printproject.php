@@ -11,7 +11,7 @@ $canRead = $perms->checkModuleItem('projects', 'view', $project_id);
 $canAddProject = $canRead;
 
 if (!$canRead) {
-	$AppUI->redirect('m=public&a=access_denied');
+	$AppUI->redirect(ACCESS_DENIED);
 }
 
 $task = new CTask();
@@ -52,7 +52,7 @@ $hasTasks = $project->project_task_count;
 
 if ($hasTasks) {
 	$worked_hours = $project->project_worked_hours;
-    $total_project_hours = $project->getTotalProjectHours();
+    $total_project_hours = $project->project_scheduled_hours;
 } else { //no tasks in project so "fake" project data
 	$worked_hours = $total_hours = $total_project_hours = 0.00;
 }

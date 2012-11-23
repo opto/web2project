@@ -144,10 +144,11 @@ class w2p_Core_UpgradeManager {
             case '2.1.3':
             case '2.1.4':
             case '2.1.5':
+            case '2.1.6':
                 $errorMessages = $this->_applySQLUpdates('dp_to_w2p1.sql', $dbConn);
                 $allErrors = array_merge($allErrors, $errorMessages);
 
-                $recordsUpdated = $this->_scrubDotProjectData($dbConn);
+                $this->_scrubDotProjectData($dbConn);
 
                 $errorMessages = $this->_applySQLUpdates('dp_to_w2p2.sql', $dbConn);
                 $allErrors = array_merge($allErrors, $errorMessages);
@@ -166,7 +167,7 @@ class w2p_Core_UpgradeManager {
     }
 
     public function createConfigString($dbConfig) {
-        $configFile = file_get_contents('../includes/config-dist.php');
+        $configFile = file_get_contents(W2P_BASE_DIR . '/includes/config-dist.php');
         $configFile = str_replace('[DBTYPE]', $dbConfig['dbtype'], $configFile);
         $configFile = str_replace('[DBHOST]', $dbConfig['dbhost'], $configFile);
         $configFile = str_replace('[DBNAME]', $dbConfig['dbname'], $configFile);
@@ -295,7 +296,7 @@ class w2p_Core_UpgradeManager {
                 if (strpos($pieces[$i], '[USER_TIMEZONE]') !== false) {
                     $pieces[$i] = str_replace('[USER_TIMEZONE]', $this->configOptions['user_timezone'], $pieces[$i]);
                 }
-                if (!$result = $dbConn->Execute($pieces[$i])) {
+                if (!$dbConn->Execute($pieces[$i])) {
                     $errorMessage = $dbConn->ErrorMsg();
                     /*
                      * TODO: I'm not happy with this solution but have yet to come up
@@ -306,7 +307,6 @@ class w2p_Core_UpgradeManager {
                       strpos($errorMessage, 'Multiple primary key defined') &&
                       strpos($errorMessage, 'Duplicate key name') ) {
 
-                      $dbErr = true;
                       $errorMessages[] = $errorMessage;
                     }
                 }

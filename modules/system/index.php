@@ -4,7 +4,7 @@ if (!defined('W2P_BASE_DIR')) {
 }
 $perms = &$AppUI->acl();
 if (!canView('system')) { // let's see if the user has sys access
-	$AppUI->redirect('m=public&a=access_denied');
+	$AppUI->redirect(ACCESS_DENIED);
 }
 
 $AppUI->savePlace();
@@ -77,9 +77,11 @@ $titleBlock->show();
             <a href="?m=system&a=addeditpref"><?php echo $AppUI->_('Default User Preferences'); ?></a><br />
             <a href="?m=system&u=syskeys&a=keys"><?php echo $AppUI->_('System Lookup Keys'); ?></a><br />
             <a href="?m=system&u=syskeys"><?php echo $AppUI->_('System Lookup Values'); ?></a><br />
-            <a href="?m=system&a=custom_field_editor"><?php echo $AppUI->_('Custom Field Editor'); ?></a><br />
+            <a href="?m=system&u=customfields"><?php echo $AppUI->_('Custom Field Editor'); ?></a><br />
         </div>
     </div>
+
+    <div class="clear"/>
 
     <div class="left main">
         <div class="left icon">
@@ -99,6 +101,8 @@ $titleBlock->show();
             <a href="?m=system&a=translate"><?php echo $AppUI->_('Translation Management'); ?></a>
         </div>
     </div>
+
+    <div class="clear"/>
 
     <div class="left main">
         <div class="left icon">

@@ -8,26 +8,25 @@ $company_id = (int) w2PgetParam($_GET, 'company_id', 0);
 $company = new CCompany();
 $company->company_id = $company_id;
 
-$canEdit = ($company_id) ? $company->canEdit() : $company->canCreate();
-if (!$canEdit) {
-	$AppUI->redirect('m=public&a=access_denied');
+$obj = $company;
+$canAddEdit = $obj->canAddEdit();
+$canAuthor = $obj->canCreate();
+$canEdit = $obj->canEdit();
+if (!$canAddEdit) {
+	$AppUI->redirect(ACCESS_DENIED);
 }
 
-// load the company types
-$types = w2PgetSysVal('CompanyType');
-$countries = array('' => $AppUI->_('(Select a Country)')) + w2PgetSysVal('GlobalCountriesPreferred') +
-		array('-' => '----') + w2PgetSysVal('GlobalCountries');
-
+// load the record data
 $obj = $AppUI->restoreObject();
 if ($obj) {
-  $company = $obj;
-  $company_id = $company->company_id;
+    $company = $obj;
+    $company_id = $company->company_id;
 } else {
-  $company->loadFull(null, $company_id);
+    $company->loadFull(null, $company_id);
 }
-
 if (!$company && $company_id > 0) {
-	$AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
+	$AppUI->setMsg('Company');
+    $AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
 	$AppUI->redirect();
 }
 
@@ -39,6 +38,12 @@ if ($company_id != 0) {
 	$titleBlock->addCrumb('?m=companies&a=view&company_id=' . $company_id, 'view this company');
 }
 $titleBlock->show();
+
+
+// load the company types
+$types = w2PgetSysVal('CompanyType');
+$countries = array('' => $AppUI->_('(Select a Country)')) + w2PgetSysVal('GlobalCountriesPreferred') +
+		array('-' => '----') + w2PgetSysVal('GlobalCountries');
 ?>
 
 <script language="javascript" type="text/javascript">

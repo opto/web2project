@@ -20,7 +20,7 @@
  */
 
 // NOTE: This path is relative to Phing's build.xml, not this test.
-include_once 'CommonSetup.php';
+include_once 'unit_tests/CommonSetup.php';
 
 class CDepartments_Test extends CommonSetup
 {
@@ -54,54 +54,9 @@ class CDepartments_Test extends CommonSetup
       );
     }
 
-    /**
-     * Tests the Attributes of a new Departments object.
-     */
-    public function testNewDepartmentAttributes()
+    public function testObjectProperties()
     {
-      $this->assertInstanceOf('CDepartment',              $this->obj);
-      $this->assertObjectHasAttribute('dept_id',          $this->obj);
-      $this->assertObjectHasAttribute('dept_parent',      $this->obj);
-      $this->assertObjectHasAttribute('dept_company',     $this->obj);
-      $this->assertObjectHasAttribute('dept_name',        $this->obj);
-      $this->assertObjectHasAttribute('dept_phone',       $this->obj);
-      $this->assertObjectHasAttribute('dept_fax',         $this->obj);
-      $this->assertObjectHasAttribute('dept_address1',    $this->obj);
-      $this->assertObjectHasAttribute('dept_address2',    $this->obj);
-      $this->assertObjectHasAttribute('dept_city',        $this->obj);
-      $this->assertObjectHasAttribute('dept_state',       $this->obj);
-      $this->assertObjectHasAttribute('dept_zip',         $this->obj);
-      $this->assertObjectHasAttribute('dept_country',     $this->obj);
-      $this->assertObjectHasAttribute('dept_url',         $this->obj);
-      $this->assertObjectHasAttribute('dept_desc',        $this->obj);
-      $this->assertObjectHasAttribute('dept_owner',       $this->obj);
-      $this->assertObjectHasAttribute('dept_email',       $this->obj);
-      $this->assertObjectHasAttribute('dept_type',        $this->obj);
-    }
-
-    /**
-     * Tests the Attribute Values of a new Department object.
-     */
-    public function testNewDepartmentAttributeValues()
-    {
-        $this->assertInstanceOf('CDepartment', $this->obj);
-        $this->assertEquals(0, $this->obj->dept_id);
-        $this->assertNull($this->obj->dept_parent);
-        $this->assertNull($this->obj->dept_company);
-        $this->assertNull($this->obj->dept_name);
-        $this->assertNull($this->obj->dept_phone);
-        $this->assertNull($this->obj->dept_fax);
-        $this->assertNull($this->obj->dept_address1);
-        $this->assertNull($this->obj->dept_address2);
-        $this->assertNull($this->obj->dept_city);
-        $this->assertNull($this->obj->dept_state);
-        $this->assertNull($this->obj->dept_zip);
-        $this->assertNull($this->obj->dept_country);
-        $this->assertNull($this->obj->dept_url);
-        $this->assertNull($this->obj->dept_desc);
-        $this->assertNull($this->obj->dept_owner);
-        $this->assertNull($this->obj->dept_email);
-        $this->assertNull($this->obj->dept_type);
+        parent::objectPropertiesTest('CDepartment', 17);
     }
 
     /**
@@ -112,13 +67,12 @@ class CDepartments_Test extends CommonSetup
     {
         unset($this->post_data['dept_name']);
         $this->obj->bind($this->post_data);
-        $errorArray = $this->obj->store();
 
         /**
         * Verify we got the proper error message
         */
-        $this->AssertEquals(1, count($errorArray));
-        $this->assertArrayHasKey('dept_name', $errorArray);
+		$this->assertFalse($this->obj->store());
+        $this->assertArrayHasKey('dept_name', $this->obj->getError());
 
         /**
         * Verify that dept id was not set
@@ -134,13 +88,12 @@ class CDepartments_Test extends CommonSetup
     {
         $this->post_data['dept_company'] = '';
         $this->obj->bind($this->post_data);
-        $errorArray = $this->obj->store();
 
         /**
         * Verify we got the proper error message
         */
-        $this->AssertEquals(1, count($errorArray));
-        $this->assertArrayHasKey('dept_company', $errorArray);
+		$this->assertFalse($this->obj->store());
+        $this->assertArrayHasKey('dept_company', $this->obj->getError());
 
         /**
         * Verify that dept id was not set
@@ -156,12 +109,12 @@ class CDepartments_Test extends CommonSetup
     {
         unset($this->post_data['dept_owner']);
         $this->obj->bind($this->post_data);
-        $errorArray = $this->obj->store();
+
         /**
         * Verify we got the proper error message
         */
-        $this->AssertEquals(1, count($errorArray));
-        $this->assertArrayHasKey('dept_owner', $errorArray);
+		$this->assertFalse($this->obj->store());
+        $this->assertArrayHasKey('dept_owner', $this->obj->getError());
 
         /**
         * Verify that dept id was not set
