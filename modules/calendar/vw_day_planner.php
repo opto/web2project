@@ -151,8 +151,34 @@ $html.="<script type='text/javascript'>
 eventRender: function(event, element) {                                          
 	element.find('span.fc-event-title').html(element.find('span.fc-event-title').text());					  
 },
-			events: [
-				{
+			events: [";
+
+foreach ($events as $row)
+{
+        $start = new w2p_Utilities_Date($row['event_start_date']);
+	$end = new w2p_Utilities_Date($row['event_end_date']);
+        //Javascript date January is 0, Dec. is 11
+        $html.="{title: '$row[event_name]',
+            start: new Date($start->year, $start->month-1,$start->day,$start->hour,$start->minute),
+            end: new Date($end->year, $end->month-1,$end->day,$end->hour,$end->minute),
+ 					allDay: false
+               },
+        ";
+
+};
+
+$html.="	
+    
+               
+{
+					title: ' ZDF Tagesschau',
+					start: new Date(y, m, 24,11),
+					end: new Date(y, m, d,12),
+					allDay: false
+				},
+                                
+
+{
 					title: 'All Day Event',
 					start: new Date(y, m, 1)
 				},
@@ -180,8 +206,8 @@ eventRender: function(event, element) {
 				},
 				{
 					title: 'Lunch',
-					start: new Date(y, m, d, 12, 0),
-					end: new Date(y, m, d, 14, 0),
+					start: new Date(y, m, 23, 12, 0),
+					end: new Date(y, m, 23, 14, 0),
 					allDay: false
 				},
 				{
