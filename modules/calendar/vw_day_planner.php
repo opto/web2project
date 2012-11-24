@@ -11,6 +11,8 @@ LICENSE
 The Dayplanner module was built by Klaus Buecher and is released here
 under modified BSD license (see GNU.org).
 
+Uses jquery, jqueryui and fullcalendar. Please see their separate licences.
+ * 
 Copyright (c) 2012 Klaus Buecher (Opto)
 
 */
