@@ -92,7 +92,7 @@ if ($other_users) {
 	$html .= '</select>';
 
 }
-
+$w2p_base_url=W2P_BASE_URL;
 require_once (W2P_BASE_DIR . '/modules/calendar/links_events.php');
 //<script type='text/javascript' src='../jquery/jquery-1.8.1.min.js'></script>
 
@@ -167,7 +167,7 @@ $.post('http://localhost:8080/w2p/index.php?m=calendar&a=test', { name: 'John', 
 			});
 			
 		});
-	
+
 		
 		$('#calendar').fullCalendar({
 			header: {
@@ -202,70 +202,18 @@ foreach ($events as $row)
 $html.="	
     
                
-{
-					title: ' ZDF Tagesschau',
-					start: new Date(y, m, 24,11),
-					end: new Date(y, m, d,12),
-					allDay: false
-				},
-                                
-
-{
-					title: 'All Day Event',
-					start: new Date(y, m, 1)
-				},
-				{
-					title: ' ARD Tagesschau',
-					start: new Date(y, m, d-5),
-					end: new Date(y, m, d-2)
-				},
-				{
-					id: 999,
-					title: 'Repeating Event',
-					start: new Date(y, m, d-3, 16, 0),
-					allDay: false
-				},
-				{
-					id: 999,
-					title: 'Repeating Event',
-					start: new Date(y, m, d+4, 16, 0),
-					allDay: false
-				},
-				{
-					title: 'Meeting',
-					start: new Date(y, m, d, 10, 30),
-					allDay: false
-				},
-				{
-					title: 'Lunch',
-					start: new Date(y, m, 23, 12, 0),
-					end: new Date(y, m, 23, 14, 0),
-					allDay: false
-				},
-				{
-					title: 'Birthday Party',
-					start: new Date(y, m, d+1, 19, 0),
-					end: new Date(y, m, d+1, 22, 30),
-					allDay: false
-				},
-				{
-					title: 'Click for Google',
-					start: new Date(y, m, 28),
-					end: new Date(y, m, 29),
-					url: 'http://localhost:8080/w2p/index.php'
-				}
 			],
 
 			droppable: true, // this allows things to be dropped onto the calendar !!!
     eventResize: function(event,dayDelta,minuteDelta,revertFunc) {
 
         event.edited=true;
-        $.post('http://localhost:8080/w2p/index.php?m=calendar&a=test', { id: event.id, 
-           starttime: $.fullCalendar.formatDate( event.start, 'yyyy-MM-dd HH-mm-ss' ),endtime:event.end }, function(data) {
-        alert('Data Loaded: ' + data);
+        $.post('$w2p_base_url/index.php?m=calendar&a=test&suppressHeaders&user_id=1', { id: event.id, 
+           starttime: $.fullCalendar.formatDate( event.start, 'yyyy-MM-dd HH:mm:ss' ),endtime:  $.fullCalendar.formatDate( event.end, 'yyyy-MM-dd HH:mm:ss' ) }, function(data) {
+//        alert('Data Loaded: ' + data);
    });
    if (event.edited==true) edittxt='yes' ; else edittxt='no'
-        alert(
+ /*       alert(
             'The end date of ' + event.title + '  id:' + event.id + '  has been moved ' +
             dayDelta + ' days and ' +
             minuteDelta + ' minutes.'
@@ -278,7 +226,7 @@ $html.="
         else
         {
         }
-
+*/
     },
 
 			drop: function(date, allDay) { // this function is called when something is dropped
