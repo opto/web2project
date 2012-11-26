@@ -117,7 +117,35 @@ $html.="<script type='text/javascript'>
 		var d = date.getDate();
 		var m = date.getMonth();
 		var y = date.getFullYear();
-	/* initialize the external events
+// have function to post data
+function post_to_url(path, params, method) {
+  method = method || 'post'; // Set method to post by default, if not specified.
+
+  // The rest of this code assumes you are not using a library.
+  // It can be made less wordy if you use one.
+  var form = document.createElement('form');
+  form.setAttribute('method', method);
+  form.setAttribute('action', path);
+
+  for(var key in params) {
+    var hiddenField = document.createElement('input');
+    hiddenField.setAttribute('type', 'hidden');
+    hiddenField.setAttribute('name', key);
+    hiddenField.setAttribute('value', params[key]);
+
+    form.appendChild(hiddenField);
+  }
+
+  document.body.appendChild(form);    // Not entirely sure if this is necessary
+  form.submit();
+}
+
+/*
+$.post('http://localhost:8080/w2p/index.php?m=calendar&a=test', { name: 'John', time: '2pm' }, function(data) {
+   alert('Data Loaded: ' + data);
+ });
+*/
+/* initialize the external events
 		-----------------------------------------------------------------*/
 	
 		$('#external-events div.external-event').each(function() {
@@ -163,7 +191,9 @@ foreach ($events as $row)
         $html.="{title: '$row[event_name]',
             start: new Date($start->year, $start->month-1,$start->day,$start->hour,$start->minute),
             end: new Date($end->year, $end->month-1,$end->day,$end->hour,$end->minute),
- 					allDay: false
+ 					allDay: false,
+                                        id: $row[event_id],
+                                        edited: false    
                },
         ";
 
@@ -222,11 +252,34 @@ $html.="
 					title: 'Click for Google',
 					start: new Date(y, m, 28),
 					end: new Date(y, m, 29),
-					url: 'http://google.com/'
+					url: 'http://localhost:8080/w2p/index.php'
 				}
 			],
 
 			droppable: true, // this allows things to be dropped onto the calendar !!!
+    eventResize: function(event,dayDelta,minuteDelta,revertFunc) {
+
+        event.edited=true;
+        $.post('http://localhost:8080/w2p/index.php?m=calendar&a=test', { id: event.id, 
+           starttime: $.fullCalendar.formatDate( event.start, 'yyyy-MM-dd HH-mm-ss' ),endtime:event.end }, function(data) {
+        alert('Data Loaded: ' + data);
+   });
+   if (event.edited==true) edittxt='yes' ; else edittxt='no'
+        alert(
+            'The end date of ' + event.title + '  id:' + event.id + '  has been moved ' +
+            dayDelta + ' days and ' +
+            minuteDelta + ' minutes.'
+            + 'edited='+ edittxt
+        );
+
+        if (!confirm('is this okay?')) {
+            revertFunc();
+        }
+        else
+        {
+        }
+
+    },
 
 			drop: function(date, allDay) { // this function is called when something is dropped
 			
