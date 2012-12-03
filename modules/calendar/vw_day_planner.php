@@ -171,10 +171,13 @@ $.post('http://localhost:8080/w2p/index.php?m=calendar&a=test', { name: 'John', 
 		
 		$('#calendar').fullCalendar({
 			header: {
-				left: 'prev,next today',
+				left: '',//prev,next today',
 				center: 'title',
-				right: 'month,agendaWeek,agendaDay'
+				right: ''//month,agendaWeek,agendaDay'
 			},
+                        year: $first_time->year,
+                        month: $first_time->month -1,
+                        date : $first_time->day,
 			defaultView: 'agendaDay',
 			editable: true,
                         slotMinutes:15,
