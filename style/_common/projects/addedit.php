@@ -169,7 +169,9 @@ $form = new w2p_Output_HTML_FormHelper($AppUI);
             <p>
                 <?php $form->showLabel('Import tasks from'); ?>
                 <?php
-                $templates = $object->loadAll('project_name', 'project_status = ' . w2PgetConfig('template_projects_status_id'));
+//allow to import from all projects
+                $templates = $object->loadAll('project_name');
+//old:                $templates = $object->loadAll('project_name', 'project_status = ' . w2PgetConfig('template_projects_status_id'));
                 $templateProjects[] = '';
                 foreach($templates as $key => $data) {
                     $templateProjects[$key] = $data['project_name'];
