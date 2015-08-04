@@ -721,7 +721,7 @@ class CTask extends w2p_Core_BaseObject
     protected function _updatePathEnumeration()
     {
         $q = $this->_getQuery();
-
+//update path for this task
         if (0 == (int) $this->task_parent || $this->task_id == $this->task_parent) {
             $path = $this->task_id;
         } else {
@@ -738,6 +738,27 @@ class CTask extends w2p_Core_BaseObject
         $q->addUpdate('task_updated', "'" . $q->dbfnNowWithTZ() . "'", false, true);
         $q->addWhere('task_id = ' . (int) $this->task_id);
         $q->exec();
+//update path for children
+        $thisID=$this->task_id;
+        $q->clear();
+        $q->addTable('tasks');
+        $q->addQuery('task_id, task_path_enumeration');
+        $q->addWhere("task_path_enumeration LIKE '%$thisID/%' ");
+        $children = $q->loadList(-1, 'task_id');
+        foreach ($children as $child_id => $child_data)  {
+			$newPath="";
+			$pathPart= strstr($child_data['task_path_enumeration'],"$thisID");
+			$newPath=$parent;
+			if ($pathPart!=NULL) $newPath.="/".$pathPart;
+        $q->clear();
+			//save to db
+        $q->addTable('tasks');
+        $q->addUpdate('task_path_enumeration', $newPath);
+        $q->addUpdate('task_updated', "'" . $q->dbfnNowWithTZ() . "'", false, true);
+        $q->addWhere('task_id = ' . (int) $child_id);
+        $q->exec();
+		}
+		
     }
 
     protected function hook_postUpdate()
