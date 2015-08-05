@@ -311,6 +311,7 @@ class CTask extends w2p_Core_BaseObject
     }
     public function updateDynamics()
     {
+//restrict all load from db to this project, in case the database holds bad task_path_enumeration ..opto
         $q = $this->_getQuery();
         $q->addTable('tasks');
         $q->addQuery('task_id, task_path_enumeration, task_duration_type');
@@ -329,6 +330,7 @@ class CTask extends w2p_Core_BaseObject
             $q->addWhere("task_path_enumeration LIKE '$path/%' ");
             $q->addWhere("task_start_date <> '0000-00-00 00:00:00'");
             $q->addWhere("task_end_date <> '0000-00-00 00:00:00'");
+            $q->addWhere('task_project = ' . (int) $this->task_project);
             $dates = $q->loadHash();
 
             $min_date = $dates['min_date'];
@@ -339,12 +341,14 @@ class CTask extends w2p_Core_BaseObject
             $q->addTable('tasks');
             $q->addQuery('SUM(task_duration * task_duration_type)');
             $q->addWhere("task_path_enumeration LIKE '$path/%' AND task_duration_type = 1 AND task_dynamic <> 1");
+            $q->addWhere('task_project = ' . (int) $this->task_project);
             $children_allocated_hours = (float) $q->loadResult();
             //Collect allocated hours based on children with duration type of 'days'
             $q->clear();
             $q->addTable('tasks');
             $q->addQuery(' SUM(task_duration * ' . w2PgetConfig('daily_working_hours') . ')');
             $q->addWhere("task_path_enumeration LIKE '$path/%' AND task_duration_type <> 1 AND task_dynamic <> 1");
+            $q->addWhere('task_project = ' . (int) $this->task_project);
             $children_allocated_days = (float) $q->loadResult();
 
             /**
@@ -366,6 +370,7 @@ class CTask extends w2p_Core_BaseObject
             $q->innerJoin('task_log', 'tl', 't.task_id = tl.task_log_task');
             $q->addQuery('SUM(task_log_hours)');
             $q->addWhere("task_path_enumeration LIKE '$path/%' AND task_dynamic <> 1");
+            $q->addWhere('task_project = ' . (int) $this->task_project);
             $children_hours_worked = (float) $q->loadResult();
 
             //Collect percent complete based on tasks with duration type of 'hours'
@@ -373,12 +378,14 @@ class CTask extends w2p_Core_BaseObject
             $q->addTable('tasks');
             $q->addQuery('SUM(task_percent_complete * task_duration)');
             $q->addWhere("task_path_enumeration LIKE '$path/%' AND task_duration_type = 1 AND task_dynamic <> 1");
+            $q->addWhere('task_project = ' . (int) $this->task_project);
             $weighted_hours_worked = (float) $q->loadResult();
             //Collect percent complete based on tasks with duration type of 'days'
             $q->clear();
             $q->addTable('tasks');
             $q->addQuery('SUM(task_percent_complete * task_duration * ' . w2PgetConfig('daily_working_hours') . ')');
             $q->addWhere("task_path_enumeration LIKE '$path/%' AND task_duration_type <> 1 AND task_dynamic <> 1");
+            $q->addWhere('task_project = ' . (int) $this->task_project);
             $weighted_hours_worked += (float) $q->loadResult();
 
             if (0 == $children_allocated_total) {
@@ -744,6 +751,7 @@ class CTask extends w2p_Core_BaseObject
         $q->addTable('tasks');
         $q->addQuery('task_id, task_path_enumeration');
         $q->addWhere("task_path_enumeration LIKE '%$thisID/%' ");
+        $q->addWhere('task_project = ' .(int) $this->task_project);
         $children = $q->loadList(-1, 'task_id');
         foreach ($children as $child_id => $child_data)  {
 			$newPath="";
