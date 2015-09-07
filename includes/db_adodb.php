@@ -32,6 +32,10 @@ $charset = w2PgetConfig('dbchar', 'utf8');
 * we will hurry up to load the system configuration details from the database.
 */
 
+    $sql = "SET NAMES Latin1";
+    $db->Execute($sql);
+
+
 $sql = 'SELECT config_name, config_value, config_type FROM ' . w2PgetConfig('dbprefix') . 'config';
 $rs = $db->Execute($sql);
 
