@@ -30,6 +30,8 @@ $add_task_bulk_time_keep             = w2PgetParam($_POST, 'add_task_bulk_time_k
 $bulk_move_date                      = w2PgetParam($_POST, 'bulk_move_date', '0');
 $bulk_task_percent_complete = w2PgetParam($_POST, 'bulk_task_percent_complete', '');
 
+w2PsetExecutionConditions();
+
 $userTZ = $AppUI->getPref('TIMEZONE');
 
 if ($bulk_task_start_date) {
