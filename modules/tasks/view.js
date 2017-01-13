@@ -1,4 +1,4 @@
-
+alert("view");
 // Task view support routines.
 function popEmailContacts() {
 	updateEmailContacts();

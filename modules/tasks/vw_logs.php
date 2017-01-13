@@ -10,6 +10,7 @@ $perms = &$AppUI->acl();
 if (!canView('task_log')) {
 	$AppUI->redirect(ACCESS_DENIED);
 }
+$canEditTasklog= canEdit('task_log') ; //this is the condition to show the copy/Csv bottons
 
 $problem = (int) w2PgetParam($_GET, 'problem', null);
 
@@ -151,7 +152,11 @@ echo $s;
   
   
     $('#task_logs').DataTable( {
-        "lengthMenu": [[ 25, 50, 100, -1], [ 25, 50, 100, "All"]]
+        "lengthMenu": [[ 25, 50, 100, -1], [ 25, 50, 100, "All"]],
+        dom: 'Blfrtip',
+        buttons: [
+        <?php   if ($canEditTasklog) echo "  'copy', 'csv',  ";?> 'print'
+        ]
         
     }
        );
