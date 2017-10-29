@@ -2004,7 +2004,7 @@ class CTask extends w2p_Core_BaseObject
         if (9999 != $task_status) $q->addWhere('task_status = ' . (int) $task_status);
         $q->addJoin('projects', 'p', 'p.project_id = task_project');
         $q->addQuery('user_task_priority');
-        $q->addJoin('user_tasks', 'ut', 'ut.task_id = tasks.task_id');
+        $q->addJoin('user_tasks', 'ut', 'ut.task_id = tasks.task_id AND ut.user_id = '.$this->_AppUI->user_id );
         $q->addJoin('user_task_pin', 'utp', 'tasks.task_id = utp.task_id');
 
         if ($task_id) {
