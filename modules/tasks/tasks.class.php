@@ -429,8 +429,16 @@ class CTask extends w2p_Core_BaseObject
         if ($newObj->task_parent == $this->task_id) {
             $newObj->task_parent = '';
         }
+        //TODO: this seems incorrect, do we want task_parent to be empty string? Should be
+        //either task_id (=toplevel) or some other task
+        //so maybe function declaration should be    public function copy($destProject_id = 0, $destTask_id = 0)
         $newObj->store($this->_AppUI);
         $this->copyAssignedUsers($newObj->task_id);
+        // update task count for new project
+        if ($destProject_id != 0) {
+               $taskCount_newProject = $this->getTaskCount($destProject_id);
+               CProject::updateTaskCount($destProject_id, $taskCount_newProject);
+        }
 
         return $newObj;
     }
