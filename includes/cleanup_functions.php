@@ -3991,7 +3991,7 @@ function __extract_from_todo($user_id, $showArcProjs, $showLowTasks, $showInProg
         $q->addWhere($allowedProjects);
     }
 
-    $q->addOrder('task_end_date, task_start_date, task_priority');
+    $q->addOrder('ut.user_task_priority DESC,task_end_date ASC, task_start_date, task_priority,project_name');
     $tasks = $q->loadList();
 
     return $tasks;
