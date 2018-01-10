@@ -98,6 +98,13 @@ $canDelete = $perms->checkModuleItem($m, 'delete');
             ?>
             </td>
         </tr>
+        <tr>
+            <td align="right" width="50%">
+                <?php echo $AppUI->_('Order by'); ?>:
+                <input type="checkbox" name="order_by_UP" id="order_by_UP" onclick="document.form_buttons.submit()" <?php echo $showInProgress ? 'checked="checked"' : ''; ?> />
+        	
+        	
+        </tr>
     </table>
 </form>
 <?php
