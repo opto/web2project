@@ -54,7 +54,14 @@ abstract class w2p_System_Setup {
         $q->setDelete('module_config');
         $q->addWhere("module_name = '$name'");
         $q->exec();
-
+        
+        
+		$q->clear();
+        $q = $this->_getQuery();
+        $q->setDelete('modules');
+        $q->addWhere("module_name = '$name'");
+        $q->exec();
+        
         return $this->_perms->unregisterModule($name);
     }
 
